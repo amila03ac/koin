@@ -17,6 +17,7 @@
   const KEYS = {
     transactions: PREFIX + "transactions",
     manual:       PREFIX + "manual",
+    // overrides: id -> { category?, ignored?, deleted?, effectiveDate?, merchant?, description?, amount? }
     overrides:    PREFIX + "overrides",
     rules:        PREFIX + "rules",
     categories:   PREFIX + "categories",

@@ -36,6 +36,12 @@ MVP. Single-account, single-user, runs entirely in the browser.
   over rows you'd hand-categorized.
 - **Custom transactions** — add / edit / remove transactions that aren't in any CSV
   (cash spending, corrections, expected bills).
+- **Edit imported transactions** — any bank row's fields (date, merchant, amount,
+  direction, category, description) can be edited. Edits are stored as **per-id overrides**
+  layered over the pristine raw import (see `compose()` + `EDIT_FIELDS`), so they survive
+  re-imports without duplicating, show an "edited" badge, and can be reverted with *Reset
+  to imported values*. Field edits are applied **before** `rules.apply`, so fixing a
+  merchant/description also fixes its auto-categorization and recurring detection.
 - **Ignore internal transfers** — configurable regex/substring patterns (not hardcoded)
   flag transfers between your own accounts so they don't count as spending.
 - **Insights** — category breakdown, top merchants, biggest expenses, period trend.
@@ -94,9 +100,10 @@ is authoritative once saved).
 category + recurring) → merged into the store (dedup by `id`) → `insights.*` aggregate
 for the active period → `app.js` renders cards, charts, and the table.
 
-Manual edits (category overrides, ignore toggles, deletions, custom transactions) are
-stored **separately from imported rows** so that re-importing a CSV never clobbers your
-work. On merge, overrides are re-applied on top of freshly parsed data.
+Manual edits (category overrides, ignore toggles, deletions, **field edits** to bank
+rows, custom transactions) are stored **separately from imported rows** so that
+re-importing a CSV never clobbers your work. On merge, overrides are re-applied on top of
+freshly parsed data, keyed by the stable `id`.
 
 ### Normalized transaction shape
 

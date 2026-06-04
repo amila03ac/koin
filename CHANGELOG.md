@@ -13,6 +13,11 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 ## [Unreleased]
 
 ### Added
+- **Edit any transaction's fields in the UI.** The edit (✏️) action now works on bank
+  (imported) transactions too — change date, merchant, amount, direction, category, or
+  description. Bank-row edits are stored as **non-destructive overrides** layered on the
+  pristine import, so they survive reloads and re-imports (no duplicates) and can be
+  reverted with **Reset to imported values**. Edited bank rows show an "edited" badge.
 - **Learned-rules manager in the Rules editor.** A friendly list of learned
   (merchant → category) rules at the top of the Rules modal: see each one, change its
   category from a dropdown, or delete it (with Undo) — all taking effect immediately.

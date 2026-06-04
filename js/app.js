@@ -84,13 +84,27 @@
     return all.map((t) => insights.effDate(t)).sort().reverse()[0];
   }
 
+  // Override fields that may edit an imported (bank) transaction. Stored per-id in
+  // state.overrides, layered over the pristine raw row in compose() so edits are
+  // non-destructive, re-import-safe, and reversible.
+  const EDIT_FIELDS = ["effectiveDate", "merchant", "description", "amount"];
+  function hasFieldEdits(o) { return !!o && EDIT_FIELDS.some((k) => o[k] != null); }
+
   // ---- composition (rules + overrides) ------------------------------------
   function compose() {
     const ov = state.overrides;
     let combined = state.raw.concat(state.manual).map((t) => {
       const o = ov[t.id];
-      if (o && o.category != null) return { ...t, category: o.category, categorySource: "manual" };
-      return { ...t };
+      if (!o) return { ...t };
+      const n = { ...t };
+      // field edits (applied BEFORE rules so categorisation/recurring see the edits)
+      if (o.effectiveDate != null) n.effectiveDate = o.effectiveDate;
+      if (o.merchant != null) n.merchant = o.merchant;
+      if (o.description != null) n.description = o.description;
+      if (o.amount != null) { n.amount = o.amount; n.direction = o.amount < 0 ? "debit" : "credit"; }
+      // manual category choice
+      if (o.category != null) { n.category = o.category; n.categorySource = "manual"; }
+      return n;
     });
     let ruled = rules.apply(combined, state.rules);
     ruled = ruled.map((t) => {
@@ -417,6 +431,7 @@
       if (t.recurring && !t.ignored) badges.push(h("span", { class: "badge recur" }, "recurring"));
       if (t.ignored) badges.push(h("span", { class: "badge ignored" }, "ignored"));
       if (t.source === "manual") badges.push(h("span", { class: "badge manual" }, "manual"));
+      else if (hasFieldEdits(state.overrides[t.id])) badges.push(h("span", { class: "badge edited", title: "Edited from the imported value" }, "edited"));
       const dateInfo = t.effectiveDate !== t.postedDate
         ? h("span", { class: "date-eff", title: `Posted ${fmtDate(t.postedDate)}` }, "•")
         : null;
@@ -424,9 +439,7 @@
       const actions = h("div", { class: "row-actions" }, [
         h("button", { class: "icon-btn", title: t.ignored ? "Un-ignore" : "Ignore (exclude from totals)",
           onclick: () => toggleIgnore(t) }, t.ignored ? "↩" : "🚫"),
-        t.source === "manual"
-          ? h("button", { class: "icon-btn", title: "Edit", onclick: () => openTxnModal(t) }, "✏️")
-          : null,
+        h("button", { class: "icon-btn", title: "Edit", onclick: () => openTxnModal(t) }, "✏️"),
         h("button", { class: "icon-btn danger", title: "Delete", onclick: () => deleteTxn(t) }, "🗑"),
       ]);
 
@@ -466,6 +479,7 @@
   // ---- add / edit modal ---------------------------------------------------
   function openTxnModal(existing) {
     const isEdit = !!existing;
+    const isCsv = isEdit && existing.source === "csv";
     const today = todayIso();
     const f = {
       date: existing ? insights.effDate(existing) : today,
@@ -477,7 +491,7 @@
     };
     const inDate = h("input", { type: "date", value: f.date });
     const inMerchant = h("input", { type: "text", value: f.merchant, placeholder: "e.g. Corner Cafe" });
-    const inDesc = h("input", { type: "text", value: f.description, placeholder: "optional note" });
+    const inDesc = h("input", { type: "text", value: f.description, placeholder: isCsv ? "" : "optional note" });
     const inAmount = h("input", { type: "number", step: "0.01", min: "0", value: f.amount, placeholder: "0.00" });
     const inDir = h("select", {}, [
       h("option", { value: "debit", selected: f.direction === "debit" ? "selected" : null }, "Money out (debit)"),
@@ -487,24 +501,42 @@
       h("option", { value: c.key, selected: c.key === f.category ? "selected" : null }, `${c.icon} ${c.label}`)));
 
     const body = h("div", { class: "form" }, [
+      isCsv ? h("p", { class: "small muted" }, "Imported bank transaction. Your changes are saved as adjustments layered over the original — re-importing won't undo them, and you can reset to the imported values any time.") : null,
       field("Date", inDate),
       field("Merchant / name", inMerchant),
       field("Amount", inAmount),
       field("Direction", inDir),
       field("Category", inCat),
-      field("Note", inDesc),
+      field(isCsv ? "Description" : "Note", inDesc),
     ]);
-    openModal(isEdit ? "Edit transaction" : "Add transaction", body, async () => {
+
+    const onSave = async () => {
       const amt = parseFloat(inAmount.value);
       if (!inMerchant.value.trim() || isNaN(amt)) { toast("Enter a merchant and a valid amount."); return false; }
       const signed = inDir.value === "debit" ? -Math.abs(amt) : Math.abs(amt);
-      if (isEdit) {
+
+      if (isCsv) {
+        // Persist edits as overrides layered on the pristine raw row (diff so we only
+        // store real changes and a reset is clean).
+        const raw = state.raw.find((x) => x.id === existing.id) || existing;
+        const o = { ...(state.overrides[existing.id] || {}) };
+        const same = (a, b) => (typeof a === "number" ? Math.round(a * 100) === Math.round(b * 100) : a === b);
+        const setOrClear = (key, val, orig) => { if (same(val, orig)) delete o[key]; else o[key] = val; };
+        setOrClear("effectiveDate", inDate.value, raw.effectiveDate);
+        setOrClear("merchant", inMerchant.value.trim(), raw.merchant);
+        setOrClear("description", inDesc.value.trim(), raw.description);
+        setOrClear("amount", signed, raw.amount);
+        if (inCat.value !== existing.category) o.category = inCat.value; // manual category choice
+        if (Object.keys(o).length) state.overrides[existing.id] = o; else delete state.overrides[existing.id];
+        await store.setOverrides(state.overrides);
+      } else if (isEdit) {
         const m = state.manual.find((x) => x.id === existing.id);
         Object.assign(m, {
           effectiveDate: inDate.value, postedDate: inDate.value,
           merchant: inMerchant.value.trim(), description: inDesc.value.trim() || inMerchant.value.trim(),
           amount: signed, direction: inDir.value, category: inCat.value, categorySource: "manual",
         });
+        await store.setManual(state.manual);
       } else {
         state.manual.push({
           id: "m_" + Date.now() + "_" + Math.random().toString(16).slice(2, 8),
@@ -515,13 +547,33 @@
           category: inCat.value, categorySource: "manual",
           ignored: false, recurring: false, source: "manual",
         });
+        await store.setManual(state.manual);
       }
-      await store.setManual(state.manual);
       compose();
       state.anchor = inDate.value;
       renderAll();
       return true;
-    });
+    };
+
+    // Bank rows get a "Reset to imported values" action that clears the field edits
+    // (keeps category/ignore decisions, which are managed separately).
+    const extras = isCsv ? [{
+      label: "Reset to imported values",
+      className: "btn ghost",
+      handler: async (close) => {
+        const o = state.overrides[existing.id];
+        if (o) {
+          EDIT_FIELDS.forEach((k) => delete o[k]);
+          if (Object.keys(o).length === 0) delete state.overrides[existing.id];
+          await store.setOverrides(state.overrides);
+          compose(); renderAll();
+        }
+        toast(`Reset “${existing.merchant}” to its imported values.`);
+        close();
+      },
+    }] : undefined;
+
+    openModal(isEdit ? "Edit transaction" : "Add transaction", body, onSave, extras);
   }
   function field(label, input) {
     return h("label", { class: "field" }, [h("span", {}, label), input]);

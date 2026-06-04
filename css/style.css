@@ -147,6 +147,7 @@ main { max-width: 1140px; margin: 0 auto; padding: 20px; display: flex; flex-dir
 .badge.recur { background: #efe2d6; color: #97603a; }
 .badge.ignored { background: #e8e2d6; color: #6e6657; }
 .badge.manual { background: #e4e7d8; color: #5c6440; }
+.badge.edited { background: #efe2d6; color: #8a5a3c; }
 
 /* ---- empty state ---- */
 .empty { min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
