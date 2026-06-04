@@ -26,7 +26,9 @@ MVP. Single-account, single-user, runs entirely in the browser.
   writes a one-off per-transaction override that wins over any rule, changing only that
   row. Rule matching tests the description **and** the cleaned merchant, so learned rules
   catch the same merchant even when text cleaning altered it. A learned-category action
-  shows an **Undo** in the toast (removes the rule / restores the prior category).
+  shows an **Undo** in the toast (removes the rule / restores the prior category). Learned
+  rules are managed in a dedicated list at the top of the **Rules** editor (re-target or
+  delete, with Undo); the raw JSON editor holds only hand-written rules + ignore patterns.
 - **Re-apply rules to history** — editing rules in the Rules editor and pressing *Save*
   immediately re-categorizes all auto-categorized transactions (categorization is
   recomputed on every `compose()`). *Save & apply to history* goes further: it drops

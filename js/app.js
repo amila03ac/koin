@@ -529,25 +529,48 @@
 
   // ---- rules modal --------------------------------------------------------
   function openRulesModal() {
-    const ta = h("textarea", { class: "json-editor", spellcheck: "false" },
-      JSON.stringify(state.rules, null, 2));
-    const cta = h("textarea", { class: "json-editor", spellcheck: "false" },
-      JSON.stringify(state.categories, null, 2));
-    const body = h("div", { class: "form" }, [
-      h("p", { class: "small muted" }, "Ignore patterns flag internal transfers so they don't count as spending. Category rules auto-assign categories (first match wins). Matching is case-insensitive; set \"isRegex\": true for a regular expression. Rules tagged \"learned\": true were added automatically when you categorised a transaction."),
-      field("Rules (ignore patterns + category rules)", ta),
-      field("Categories", cta),
-      h("p", { class: "small muted" }, "“Save” applies edited rules to all auto-categorized transactions immediately. “Save & apply to history” goes further: it also re-runs the rules over transactions you'd categorised by hand, clearing those one-off edits so the rules win."),
+    // Friendly, live list of learned rules (managed here, not in the JSON below).
+    const learnedWrap = h("div", { class: "learned-list" });
+    renderLearnedList(learnedWrap);
+
+    // The raw editor holds ONLY hand-written rules + ignore patterns; learned rules are
+    // excluded so the two views never fight. They're re-attached on save.
+    const handWritten = {
+      ignorePatterns: state.rules.ignorePatterns || [],
+      categoryRules: (state.rules.categoryRules || []).filter((r) => !r.learned),
+    };
+    const ta = h("textarea", { class: "json-editor", spellcheck: "false" }, JSON.stringify(handWritten, null, 2));
+    const cta = h("textarea", { class: "json-editor", spellcheck: "false" }, JSON.stringify(state.categories, null, 2));
+
+    const advanced = h("details", { class: "advanced" }, [
+      h("summary", {}, "Advanced — edit raw rules & categories (JSON)"),
+      h("div", { class: "form" }, [
+        h("p", { class: "small muted" }, "Ignore patterns flag internal transfers so they don't count as spending. Category rules auto-assign categories (first match wins). Matching is case-insensitive; set \"isRegex\": true for a regular expression. (Learned rules are managed in the list above.)"),
+        field("Ignore patterns + hand-written category rules", ta),
+        field("Categories", cta),
+        h("p", { class: "small muted" }, "“Save” applies edited rules to all auto-categorized transactions immediately. “Save & apply to history” goes further: it also re-runs the rules over transactions you'd categorised by hand, clearing those one-off edits so the rules win."),
+      ]),
     ]);
 
-    // Validate + persist the two editors. Returns false on invalid JSON.
+    const body = h("div", { class: "form" }, [
+      h("h3", { class: "rules-heading" }, "Learned rules"),
+      h("p", { class: "small muted" }, "Categories Koin remembered when you categorised an uncategorised transaction. Each applies to that merchant across all history and future imports. Change the category or remove a rule below — it takes effect immediately."),
+      learnedWrap,
+      advanced,
+    ]);
+
+    // Validate + persist the editors. Learned rules (managed by the list, already saved)
+    // are re-attached AFTER the hand-written ones so hand-written rules still win.
     const saveEditors = async () => {
       try {
-        const r = JSON.parse(ta.value);
+        const parsed = JSON.parse(ta.value);
         const c = JSON.parse(cta.value);
-        state.rules = r; state.categories = c;
+        const learned = (state.rules.categoryRules || []).filter((r) => r.learned);
+        const handCats = (parsed.categoryRules || []).filter((r) => !r.learned); // ignore stray learned flags
+        state.rules = { ...parsed, categoryRules: [...handCats, ...learned] };
+        state.categories = c;
         state.catMap = Object.fromEntries(c.map((x) => [x.key, x]));
-        await store.setRules(r); await store.setCategories(c);
+        await store.setRules(state.rules); await store.setCategories(c);
         $("#filter-cat").dataset.built = ""; $("#filter-cat").innerHTML = "";
         compose(); renderAll();
         return true;
@@ -565,6 +588,63 @@
         },
       },
     ]);
+  }
+
+  // Render (or re-render) the live list of learned rules into `container`.
+  function renderLearnedList(container) {
+    container.innerHTML = "";
+    const learned = (state.rules.categoryRules || []).filter((r) => r.learned);
+    if (!learned.length) {
+      container.appendChild(h("div", { class: "learned-empty muted small" },
+        "No learned rules yet — categorise an uncategorised transaction and Koin will remember it here."));
+      return;
+    }
+    for (const rule of learned) {
+      container.appendChild(h("div", { class: "learned-row" }, [
+        h("span", { class: "learned-merchant", title: rule.match }, rule.match),
+        h("span", { class: "learned-arrow" }, "→"),
+        learnedCategorySelect(rule),
+        h("button", { class: "icon-btn danger", title: "Delete this learned rule",
+          onclick: () => deleteLearnedRule(rule, container) }, "🗑"),
+      ]));
+    }
+  }
+
+  // Category dropdown for one learned rule. Editing it re-targets the rule immediately.
+  function learnedCategorySelect(rule) {
+    const sel = h("select", { class: "cat-select" });
+    for (const c of state.categories) {
+      sel.appendChild(h("option", { value: c.key, selected: c.key === rule.category ? "selected" : null }, `${c.icon} ${c.label}`));
+    }
+    sel.addEventListener("change", async () => {
+      rule.category = sel.value;            // rule is a live reference into state.rules
+      await store.setRules(state.rules);
+      compose(); renderAll();
+      toast(`Updated learned rule “${rule.match}” → ${(state.catMap[sel.value] || {}).label || sel.value}.`);
+    });
+    return sel;
+  }
+
+  // Remove a learned rule (its merchant's transactions revert to auto-categorization,
+  // i.e. uncategorized unless a hand-written rule matches). Reversible via Undo.
+  async function deleteLearnedRule(rule, container) {
+    const rules = state.rules.categoryRules || [];
+    const idx = rules.indexOf(rule);
+    if (idx < 0) return;
+    rules.splice(idx, 1);
+    await store.setRules(state.rules);
+    compose(); renderAll();
+    renderLearnedList(container);
+    toast(`Removed learned rule “${rule.match}”.`, {
+      label: "Undo",
+      fn: async () => {
+        rules.splice(idx, 0, rule);         // re-insert at its original position
+        await store.setRules(state.rules);
+        compose(); renderAll();
+        renderLearnedList(container);
+        toast(`Restored “${rule.match}”.`);
+      },
+    });
   }
 
   // Re-run the current rules across ALL transactions, including ones the user had

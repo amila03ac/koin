@@ -46,6 +46,9 @@ check("manual category is preserved", Koin.rules.apply(manual, Koin.DEFAULT_RULE
 const learned = { ignorePatterns: [], categoryRules: [{ match: "AGL ENERGY", category: "utilities", isRegex: false, learned: true }] };
 const lr = Koin.rules.apply(transactions, learned).filter(t => t.merchant === "AGL ENERGY");
 check("learned merchant rule categorizes all its rows", lr.length >= 2 && lr.every(t => t.category === "utilities"));
+// ...and removing that learned rule reverts its merchant to uncategorized (delete semantics)
+const lrGone = Koin.rules.apply(transactions, { ignorePatterns: [], categoryRules: [] }).filter(t => t.merchant === "AGL ENERGY");
+check("removing a learned rule un-categorizes its merchant", lrGone.length >= 2 && lrGone.every(t => t.category === "uncategorized"));
 // ...even when cleaning altered the text (merchant "UBER EATS" vs description "UBER   *EATS")
 const uber = Koin.rules.apply(transactions, { ignorePatterns: [], categoryRules: [{ match: "UBER EATS", category: "dining", isRegex: false, learned: true }] })
   .filter(t => /uber/i.test(t.merchant));

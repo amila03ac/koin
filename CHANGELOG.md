@@ -12,6 +12,13 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 
 ## [Unreleased]
 
+### Added
+- **Learned-rules manager in the Rules editor.** A friendly list of learned
+  (merchant → category) rules at the top of the Rules modal: see each one, change its
+  category from a dropdown, or delete it (with Undo) — all taking effect immediately.
+  Learned rules are now shown only in this list; the raw JSON editor holds just the
+  hand-written rules + ignore patterns and is tucked into a collapsible "Advanced" section.
+
 ### Changed
 - **Sanitized for public release.** Replaced the sample statement with synthetic demo data
   (fake merchants and people) and generalized the seed categorization rules to well-known

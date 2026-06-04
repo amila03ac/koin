@@ -34,8 +34,6 @@ current stage — see the `koin-feature` skill for the self-review rubric.
 
 ## Now (actively considered)
 
-- **Learned-rules UX.** A dedicated, readable list of `learned` rules in the Rules editor
-  with one-click delete/edit, visually separated from hand-written rules.
 - **Budgets per category.** Optional monthly limit per category with progress bars and an
   over-budget highlight on the dashboard.
 
