@@ -1,0 +1,19 @@
+{
+  "_comment": "Seed categories. Edited copy lives in storage; this just seeds first run. key = stable id, label = display, color = chart color, icon = emoji.",
+  "categories": [
+    { "key": "groceries",      "label": "Groceries",        "color": "#7a8450", "icon": "🛒" },
+    { "key": "dining",         "label": "Dining & Takeaway", "color": "#b0764e", "icon": "🍔" },
+    { "key": "transport",      "label": "Transport & Fuel", "color": "#6d8a96", "icon": "🚗" },
+    { "key": "shopping",       "label": "Shopping",          "color": "#8a7592", "icon": "🛍️" },
+    { "key": "utilities",      "label": "Utilities & Bills", "color": "#c0a050", "icon": "💡" },
+    { "key": "subscriptions",  "label": "Subscriptions",     "color": "#b07f88", "icon": "🔁" },
+    { "key": "health",         "label": "Health & Pharmacy", "color": "#a95f54", "icon": "💊" },
+    { "key": "education",      "label": "Education & Kids",  "color": "#6c7595", "icon": "🎓" },
+    { "key": "entertainment",  "label": "Entertainment",     "color": "#538079", "icon": "🎬" },
+    { "key": "housing",        "label": "Housing & Rent",    "color": "#9c7d5d", "icon": "🏠" },
+    { "key": "income",         "label": "Income",            "color": "#5f7d52", "icon": "💰" },
+    { "key": "transfers",      "label": "Transfers",         "color": "#9c958a", "icon": "↔️" },
+    { "key": "fees",           "label": "Fees & Charges",    "color": "#97574f", "icon": "🏦" },
+    { "key": "uncategorized",  "label": "Uncategorized",     "color": "#c4bcae", "icon": "❓" }
+  ]
+}

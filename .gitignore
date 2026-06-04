@@ -1,0 +1,25 @@
+# --- Your real financial data — NEVER commit this ---
+# All CSVs in data/ are ignored except the synthetic sample.
+data/*.csv
+!data/Transactions.sample.csv
+# App backups exported via "Export backup"
+koin-backup-*.json
+# The live data file lives in ~/.koin (outside the repo) — listed here as a reminder.
+# ~/.koin/koin-data.json
+
+# --- Machine-specific tooling ---
+# launch.json contains absolute paths; keep it local.
+.claude/launch.json
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+.idea/
+.vscode/
+
+# --- Node (in case tooling is added later) ---
+node_modules/
+npm-debug.log*
