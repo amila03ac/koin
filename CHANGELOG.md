@@ -103,10 +103,10 @@ Initial working dashboard (local proof-of-concept).
   (`store.js`, localStorage) as the seam for a future database; pure logic modules
   (`parser`, `rules`, `insights`) with a headless Node test suite.
 
-[Unreleased]: https://example.com/koin/compare/v0.6.0...HEAD
-[0.6.0]: https://example.com/koin/releases/v0.6.0
-[0.5.0]: https://example.com/koin/releases/v0.5.0
-[0.4.0]: https://example.com/koin/releases/v0.4.0
-[0.3.0]: https://example.com/koin/releases/v0.3.0
-[0.2.0]: https://example.com/koin/releases/v0.2.0
-[0.1.0]: https://example.com/koin/releases/v0.1.0
+[Unreleased]: https://github.com/amila03ac/koin/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/amila03ac/koin/releases/tag/v0.6.0
+[0.5.0]: https://github.com/amila03ac/koin/releases/tag/v0.5.0
+[0.4.0]: https://github.com/amila03ac/koin/releases/tag/v0.4.0
+[0.3.0]: https://github.com/amila03ac/koin/releases/tag/v0.3.0
+[0.2.0]: https://github.com/amila03ac/koin/releases/tag/v0.2.0
+[0.1.0]: https://github.com/amila03ac/koin/releases/tag/v0.1.0
