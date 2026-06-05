@@ -70,14 +70,23 @@ and offer the adjustment. A good outcome is sometimes a reshaped or declined fea
 - Drive the real UI in the browser (Launch preview / a static server) and confirm the
   feature works end-to-end, including persistence across reload and at least one edge case.
   Don't rely on screenshots alone — assert DOM/state via eval.
+- **NEVER let testing touch the user's real data.** `~/.koin/koin-data.json` is the user's
+  live financial data. When you run `server.js` to verify, set `KOIN_DATA_DIR=/tmp/koin-...`
+  so writes land in a throwaway sandbox (the project's `.claude/settings.json` already sets
+  this for Claude-launched servers, but confirm it). Clean up sandbox dirs when done. A
+  PreToolUse hook blocks shell writes to `~/.koin`, but don't rely on it — be deliberate.
 
-## 5. Document
+## 5. Document — the CHANGELOG is mandatory, not optional
 
-- Add a `CHANGELOG.md` entry under `[Unreleased]` (or a new `0.N.0` for a feature),
-  Keep-a-Changelog categories (Added/Changed/Fixed/…). Bump the minor for a user-visible
-  feature increment.
+- **Every user-visible change MUST add a `CHANGELOG.md` entry under `[Unreleased]`** before
+  you call the work done — Keep-a-Changelog categories (Added/Changed/Fixed/…), proper
+  section order (Added → Changed → Deprecated → Removed → Fixed → Security). This is the
+  project's source of truth for "what shipped"; skipping it is a defect. Bump the minor for
+  a user-visible feature increment.
 - If a `ROADMAP.md` item shipped, remove it there. If you learned something architectural,
   update `CLAUDE.md`.
+- Commits in this repo are authored as **Amila** with **no AI co-author trailer** (see
+  CLAUDE.md → "Commits & attribution"). Only commit/push when the user asks.
 
 ## 6. Self-review — scaled to the project stage
 

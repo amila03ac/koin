@@ -185,3 +185,17 @@ Don't over-engineer a POC, but don't cut corners that cause data loss. See ROADM
 "Project stages" — at **Stage 0** prioritize correct money math, reversible actions, and
 not silently losing user data; defer auth, migrations, perf budgets, and security hardening
 until Stage 1+ (shareable/hosted).
+
+### Commits & attribution
+- Commits are authored as **Amila** (`amila03ac@gmail.com`) with **no
+  AI / co-author trailer** — all work is attributed to the user. Don't add a
+  `Co-Authored-By` line. (Enforce repo-wide via `attribution.commit: ""` in
+  `.claude/settings.json` if not already set.)
+- **Only commit or push when the user explicitly asks.** Prefer one focused commit per
+  feature/fix.
+
+### Note for fresh Claude sessions
+Everything you need is in this repo: this `CLAUDE.md`, `ROADMAP.md`, `CHANGELOG.md`, and the
+auto-loaded **`koin-feature`** skill. There is **no project auto-memory** for this directory
+— so durable knowledge must live in these files, not in a past conversation. If you discover
+something future sessions will need, write it here.
