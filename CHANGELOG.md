@@ -23,6 +23,11 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
   category from a dropdown, or delete it (with Undo) — all taking effect immediately.
   Learned rules are now shown only in this list; the raw JSON editor holds just the
   hand-written rules + ignore patterns and is tucked into a collapsible "Advanced" section.
+- **`KOIN_DATA_DIR` env override** in `server.js` — point the data file somewhere other than
+  `~/.koin` (used to keep automated/test runs away from real data). The project's
+  `.claude/settings.json` + `.claude/hooks/` use it to route Claude-launched servers to a
+  sandbox, and add a PreToolUse hook + Write/Edit deny rules that block tooling from
+  touching `~/.koin`.
 
 ### Changed
 - **Sanitized for public release.** Replaced the sample statement with synthetic demo data
@@ -31,6 +36,14 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
   docs and tests. Added a `.gitignore` that excludes real statements (any `data/*.csv`
   except the sample) and app backups. _(Your own saved data is unaffected — it lives in
   your browser / `~/.koin`, not in the repo.)_
+
+### Fixed
+- **Stale tabs can no longer silently clobber your data.** The file backend now guards
+  against accidental overwrites: `server.js` rejects (HTTP 409) any save that would shrink
+  a non-empty dataset to under half its size, unless explicitly forced; the client only
+  sends the tab-close `pagehide` beacon when it has *unsaved edits* (so merely viewing and
+  closing a tab can't overwrite); and a rejected save surfaces a "newer data on disk —
+  reload" toast. Intentional bulk ops (restore backup, reset) force-write past the guard.
 
 ## [0.6.0] — 2026-05-31
 

@@ -31,7 +31,8 @@
       this.mode = "local";   // until init() upgrades us to "file"
       this.cache = {};       // in-memory copy of the file blob (file mode only)
       this._saveTimer = null;
-      this._savePromise = null;
+      this._dirty = false;   // true once this tab has unsaved edits (file mode)
+      this.onSaveRejected = null; // app sets this to surface a shrink-guard rejection
     }
 
     // Detect the local helper. If GET /api/data works, use the shared file backend.
@@ -67,6 +68,7 @@
     async _write(key, value) {
       if (this.mode === "file") {
         this.cache[key] = value;
+        this._dirty = true;
         this._scheduleSave();
         return;
       }
@@ -83,20 +85,36 @@
       clearTimeout(this._saveTimer);
       this._saveTimer = setTimeout(() => this._flush(), SAVE_DEBOUNCE_MS);
     }
-    async _flush() {
+    // force=true bypasses the server's shrink-guard (for intentional bulk ops: restore/reset).
+    async _flush(force) {
       clearTimeout(this._saveTimer);
       if (this.mode !== "file") return;
       const body = JSON.stringify(this.cache);
-      this._savePromise = fetch("/api/data", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body,
-      }).catch((err) => console.error("Koin store: save failed", err));
-      return this._savePromise;
+      try {
+        const res = await fetch("/api/data" + (force ? "?force=1" : ""), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body,
+        });
+        if (res.status === 409) {
+          // Shrink-guard refused the save — newer/larger data is on disk. Keep _dirty so a
+          // later forced save can still go through, and let the app warn the user.
+          const info = await res.json().catch(() => ({}));
+          console.warn("Koin store: save rejected by shrink-guard", info);
+          if (typeof this.onSaveRejected === "function") this.onSaveRejected(info);
+          return;
+        }
+        if (!res.ok) { console.error("Koin store: save failed", res.status); return; }
+        this._dirty = false;
+      } catch (err) {
+        console.error("Koin store: save failed", err);
+      }
     }
     _flushBeacon() {
-      // synchronous-safe save during unload
-      if (this.mode !== "file") return;
+      // synchronous-safe save during unload — ONLY if this tab actually has unsaved edits,
+      // so merely viewing data and closing the tab can never overwrite the file. Unforced,
+      // so the server's shrink-guard still applies.
+      if (this.mode !== "file" || !this._dirty) return;
       try {
         navigator.sendBeacon("/api/data", new Blob([JSON.stringify(this.cache)], { type: "application/json" }));
       } catch (_) { /* ignore */ }
@@ -142,12 +160,12 @@
       if (dump.rules)        await this.setRules(dump.rules);
       if (dump.categories)   await this.setCategories(dump.categories);
       if (dump.meta)         await this.setMeta(dump.meta);
-      if (this.mode === "file") await this._flush(); // persist before the caller reloads
+      if (this.mode === "file") await this._flush(true); // force: restore is intentional
     }
     async clearAll() {
       if (this.mode === "file") {
         this.cache = {};
-        await this._flush();
+        await this._flush(true); // force: reset is intentional
         return;
       }
       Object.values(KEYS).forEach((k) => localStorage.removeItem(k));

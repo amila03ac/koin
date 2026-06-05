@@ -40,6 +40,13 @@
   // ---- bootstrap ----------------------------------------------------------
   async function init() {
     await store.init(); // pick the storage backend (shared file via server.js, else localStorage)
+    // If the file backend refuses a save (a stale tab would shrink newer data), tell the user.
+    store.onSaveRejected = (info) => {
+      toast(
+        `Save blocked — newer data is on disk (${info.current} rows vs this tab's ${info.incoming}). Reload to see the latest.`,
+        { label: "Reload", fn: () => location.reload() }
+      );
+    };
     state.categories = (await store.getCategories()) || Koin.DEFAULT_CATEGORIES;
     state.rules = (await store.getRules()) || Koin.DEFAULT_RULES;
     if (!(await store.getCategories())) await store.setCategories(state.categories);

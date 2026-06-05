@@ -65,6 +65,14 @@ Two ways to run, two backends (auto-detected in `store.init()`):
   the machine. Still no database, nothing stored in the project folder. `server.js` is a
   ~60-line zero-dependency helper (localhost-only; not a production server).
 
+> **`~/.koin/koin-data.json` is the user's LIVE data — never let tooling overwrite it.**
+> `server.js` honors `KOIN_DATA_DIR` to relocate the data file; `.claude/settings.json` sets
+> it to a sandbox for Claude-launched servers and a PreToolUse hook blocks shell writes to
+> `~/.koin`. When testing the server yourself, set `KOIN_DATA_DIR=/tmp/...`. A **shrink-guard**
+> in `server.js` (409 on a non-empty dataset dropping below half, unless `?force=1`) plus a
+> dirty-only tab-close beacon stop a stale tab from clobbering newer data; restore/reset
+> force-write past it. Still, **Export backup** is the only fully durable copy.
+
 ```
 Koin/
   index.html            Dashboard shell; loads the js/ files as classic scripts

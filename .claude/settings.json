@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "KOIN_DATA_DIR": "/tmp/koin-claude-sandbox"
+  },
+  "permissions": {
+    "deny": [
+      "Write(**/.koin/**)",
+      "Edit(**/.koin/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/guard-koin-data.sh\"",
+            "statusMessage": "Checking command against Koin data safeguard"
+          }
+        ]
+      }
+    ]
+  }
+}
