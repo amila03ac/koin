@@ -109,7 +109,29 @@ security pass on anything that crosses the network or accepts untrusted input.
 Report the self-review honestly to the user: what you verified, any risks or shortcuts you
 took, and what you deliberately deferred to a later stage (and why).
 
+## 7. Hand off the commit command (always finish with this)
+
+Whether or not the user asks you to commit, **end the task by giving them a ready-to-paste
+git commit command** with a crafted message, so they can commit in one step:
+
+- Stage + commit in a single block. Concise imperative subject (≤ ~70 chars) and a short
+  body explaining the *why*; mention the CHANGELOG bump if relevant.
+- **No `Co-Authored-By` / AI trailer.** The repo's git config already authors as Amila, so
+  no `--author` override is needed — but never add an attribution trailer.
+- Format it as a copy-pasteable fenced `bash` block, e.g.:
+
+  ```bash
+  git add -A && git commit -m "Add second-bank CSV import format" \
+    -m "Auto-detect CSV layout via header-sniffing profiles; map only the relevant
+  columns. Updates parser, tests, samples, CHANGELOG (Unreleased)."
+  ```
+
+- If the change spans unrelated concerns, suggest splitting into focused commits instead.
+- If the user *did* ask you to commit, run it yourself (still no trailer), then show
+  `git log -1 --stat` so they can confirm.
+
 ## Definition of done
 
 Implemented ✓ · invariants upheld ✓ · `node test/run.js` green ✓ · verified in-browser ✓ ·
-CHANGELOG updated (ROADMAP/CLAUDE if needed) ✓ · stage-scaled self-review reported ✓.
+CHANGELOG updated (ROADMAP/CLAUDE if needed) ✓ · stage-scaled self-review reported ✓ ·
+commit command handed to the user ✓.
