@@ -10,8 +10,10 @@ product is used. Items are grouped by **horizon** (Now / Next / Later), not hard
 
 - **Personal-finance clarity first.** Every feature should make "where did my money go?"
   easier to answer. Insight > bookkeeping.
-- **Keep it simple to run.** No build step, no install, works offline by double-click —
-  until there's a concrete reason (sharing, multi-device) to add infrastructure.
+- **Keep it simple to run.** Easy to launch and works offline. (Through 0.x this meant
+  no build step / double-click `index.html`; we've since decided to adopt Vite + a PWA — see
+  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — which keeps offline use while making the
+  codebase maintainable.)
 - **Your data stays yours.** Local-first. Anything that leaves the device is opt-in.
 - **One storage seam.** All persistence stays behind `store.js` so the backend can change
   without rewriting the app.
@@ -50,14 +52,20 @@ current stage — see the `koin-feature` skill for the self-review rubric.
 - **Data-safety nudges.** Import history view, "last backup" reminder, and an auto-export
   prompt — mitigations for the localStorage-can-be-cleared risk.
 
+## Architecture evolution
+
+The agreed technical direction (Vite + TypeScript, IndexedDB, PWA, then Supabase cloud
+sync) lives in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — destination **B**
+(local-first + optional cloud sync). Phase 1 of that plan is the **Stage 0 → Stage 1**
+transition. Highlights folded in below.
+
 ## Later
 
-- **Storage evolution.** A local file-backed backend (via `server.js`, shared across
-  browsers) shipped in 0.6.0. Next steps behind the same `store.js` seam: an IndexedDB
-  adapter (more headroom, still local, no helper needed), then a REST + real database
-  backend (e.g. SQLite/Postgres) for multi-device/hosted use.
-- **Shareable / hosted Koin.** Deployable build, optional accounts/auth, cross-device sync.
-- **Mobile / PWA.** Installable app; the pure logic modules are written to port.
+- **Phase 1 — real codebase (local-first).** Vite + TypeScript, split `app.js` into modules,
+  IndexedDB backend (re-import, no migration), installable PWA, GitHub Pages deploy, CI +
+  MIT license + contributor docs. Retires `server.js`/`~/.koin`. See docs/ARCHITECTURE.md.
+- **Phase 2 — cloud sync.** Supabase (Postgres + Auth + row-level security) behind the same
+  storage seam; IndexedDB becomes the offline cache. Cross-device sync, optional accounts.
 - **Search & reports.** Full-text search, custom date ranges, exportable reports (PDF/CSV).
 
 ## Out of scope (for now)
