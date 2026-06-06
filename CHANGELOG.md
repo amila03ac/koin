@@ -12,6 +12,16 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 
 ## [Unreleased]
 
+### Changed
+- **Adopted a build step (Vite + TypeScript + Vitest).** Phase 1 Step 1 of the
+  [architecture plan](docs/ARCHITECTURE.md): the app is now served/bundled by Vite and run
+  with `npm run dev` / `npm run build` (Node 18+), TypeScript is being adopted module by
+  module, and tests run under Vitest (with a jsdom boot smoke test) alongside the original
+  Node runner during the migration. **No app logic changed** — the existing scripts are
+  loaded via a single module entry (`src/main.ts`). The old `node server.js` file-backend
+  mode is superseded by the Vite dev server; data is per-browser (localStorage) until the
+  IndexedDB/cloud steps land — re-import your CSV or restore a backup if upgrading.
+
 ### Added
 - **Add & edit categories in the UI.** The Rules modal now has a friendly **Categories**
   manager: rename any category, pick its colour with a swatch, set an emoji icon, and

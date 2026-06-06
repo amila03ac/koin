@@ -5,42 +5,32 @@ insights — runs entirely in your browser, no install, no account, no data leav
 your machine. Yearly / monthly / weekly views, auto-categorization, recurring
 detection, and editable transactions.
 
-> **Requirements:** none for the double-click mode. The recommended "local helper" mode
-> just needs **Node.js** (already on most machines; `node --version` to check).
+> **Requirements:** **Node.js 18+** (`node --version` to check). Koin now uses a small build
+> step (Vite); see the [architecture plan](docs/ARCHITECTURE.md) for where it's headed.
 
 ## Quick start
 
-**Option A — local helper (recommended: data persists across all your browsers)**
-
 ```bash
 cd Koin
-node server.js
+npm install
+npm run dev
 # then open the printed URL: http://localhost:4178
 ```
 
-This runs a tiny built-in helper (no install, no dependencies). Your data is stored in
-**one JSON file at `~/.koin/koin-data.json`**, so every browser on your machine — Chrome,
-Safari, Firefox — sees the same data. Nothing is written into this folder, and there's no
-database. Click **Import CSV** and pick your statement (e.g. `data/Transactions.sample.csv`).
-
-**Option B — double-click (simplest, but per-browser)**
-
-1. Open `index.html` in your browser (double-click it in Finder).
-2. Click **Import CSV** and pick your statement.
-3. Data is saved in *that browser's* storage (localStorage) for next time.
+Click **Import CSV** and pick your statement (e.g. `data/Transactions.sample.csv`). To make a
+production build, run `npm run build` (outputs `dist/`) and preview it with `npm run preview`.
 
 ### Where your data lives & persistence
 
-| How you open Koin | Backend | Persists across reloads? | Shared across browsers? |
-|---|---|---|---|
-| `node server.js` → localhost | `~/.koin/koin-data.json` file | ✅ | ✅ (same machine) |
-| double-click `index.html` | browser localStorage | ✅ | ❌ (per-browser) |
+Your data is saved in **that browser's** storage (localStorage) and persists across reloads.
+It's per-browser for now; cross-device sync is the next milestone (see
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)). **⋯ → Export backup** / **Restore backup**
+moves data between browsers or machines. All persistence lives behind one storage adapter in
+`js/store.js` — the seam for IndexedDB and a cloud backend later.
 
-Two gotchas with the double-click mode: `file://` and `http://localhost` are *different
-origins* with separate storage, and localStorage is per-browser. The helper avoids both.
-Either way, **⋯ → Export backup** / **Restore backup** moves data between machines.
-(All of this lives behind one storage adapter in `js/store.js` — the seam for a real
-database later.)
+> **Upgrading from the old `node server.js` mode?** That file-backed helper is superseded by
+> the Vite dev server; data previously kept in `~/.koin/koin-data.json` won't appear
+> automatically — just **Import** your CSV again (or **Restore** a backup).
 
 ## Using it
 
@@ -66,16 +56,18 @@ database later.)
 
 ## How it's built
 
-Plain HTML + vanilla JS, zero dependencies, no build step. All persistence goes through
-one swappable storage adapter (`js/store.js`, localStorage today) so a real database can
-be slotted in later without touching the UI. See [CLAUDE.md](CLAUDE.md) for architecture.
+Vanilla JS bundled with **Vite**, with **TypeScript** being adopted module-by-module (the
+pure `parser`/`rules`/`insights` logic ports first). All persistence goes through one
+swappable storage adapter (`js/store.js`, localStorage today) so IndexedDB and a cloud
+backend can be slotted in later without touching the UI. See [CLAUDE.md](CLAUDE.md) for the
+current architecture and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the evolution plan.
 
 ## Tests
 
-The parsing/rules/insights logic is pure and can be checked headlessly with Node:
-
 ```bash
-node test/run.js
+npm test          # Vitest (unit + a jsdom boot smoke test)
+npm run typecheck # tsc --noEmit
+npm run test:legacy   # the original Node test runner (kept until tests finish migrating)
 ```
 
 ## License

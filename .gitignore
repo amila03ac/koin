@@ -21,6 +21,7 @@ Thumbs.db
 .idea/
 .vscode/
 
-# --- Node (in case tooling is added later) ---
+# --- Node / build tooling ---
 node_modules/
 npm-debug.log*
+dist/

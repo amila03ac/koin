@@ -66,15 +66,18 @@ and offer the adjustment. A good outcome is sometimes a reshaped or declined fea
 
 ## 4. Verify (required before claiming done)
 
-- `node test/run.js` must pass. Add/adjust tests for new pure logic.
-- Drive the real UI in the browser (Launch preview / a static server) and confirm the
+- `npm test` (Vitest) and `npm run typecheck` must pass; `npm run test:legacy` (the original
+  Node runner) too, until that migration finishes. Add/adjust tests for new pure logic, and
+  keep the jsdom `boot` test green.
+- Drive the real UI in the browser via `npm run dev` (http://localhost:4178) and confirm the
   feature works end-to-end, including persistence across reload and at least one edge case.
   Don't rely on screenshots alone — assert DOM/state via eval.
-- **NEVER let testing touch the user's real data.** `~/.koin/koin-data.json` is the user's
-  live financial data. When you run `server.js` to verify, set `KOIN_DATA_DIR=/tmp/koin-...`
-  so writes land in a throwaway sandbox (the project's `.claude/settings.json` already sets
-  this for Claude-launched servers, but confirm it). Clean up sandbox dirs when done. A
-  PreToolUse hook blocks shell writes to `~/.koin`, but don't rely on it — be deliberate.
+- **NEVER let testing touch the user's real data.** The Vite dev server uses **localStorage**
+  (per-browser), so it doesn't touch `~/.koin`. But `~/.koin/koin-data.json` may still hold
+  the user's live data from the old `server.cjs` mode — never point tooling at it. If you run
+  `server.cjs`, set `KOIN_DATA_DIR=/tmp/koin-...` so writes land in a throwaway sandbox
+  (`.claude/settings.json` sets this for Claude-launched servers; a PreToolUse hook also
+  blocks shell writes to `~/.koin` — don't rely on it, be deliberate).
 
 ## 5. Document — the CHANGELOG is mandatory, not optional
 
@@ -85,6 +88,9 @@ and offer the adjustment. A good outcome is sometimes a reshaped or declined fea
   a user-visible feature increment.
 - If a `ROADMAP.md` item shipped, remove it there. If you learned something architectural,
   update `CLAUDE.md`.
+- If your work completes (or advances) a step in **`docs/ARCHITECTURE.md`**, tick its
+  checkbox / update its status in the same commit — that file tracks the migration's
+  progress and goes stale fast if sessions don't update it.
 - Commits in this repo are authored as **Amila** with **no AI co-author trailer** (see
   CLAUDE.md → "Commits & attribution"). Only commit/push when the user asks.
 

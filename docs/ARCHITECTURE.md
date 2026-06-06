@@ -7,8 +7,17 @@ This is the agreed technical direction for taking Koin from a local proof-of-con
 - `ROADMAP.md` — product horizons (Now / Next / Later) and project stages.
 - `CHANGELOG.md` — what has shipped.
 
-When a phase below ships, fold the details into `CLAUDE.md` (current architecture) and tick
-it off here.
+## Tracking progress (keep this file current)
+
+**This file is the source of truth for "what's done" in the architecture migration.** Any
+session that completes (or partially completes) a step below MUST update it in the same
+commit as the code:
+
+- Tick the step's checkbox (`- [ ]` → `- [x]`) and, if useful, append `— <date>, <commit/PR>`.
+- For a partial step, leave it unchecked and add a short `(in progress: …)` note.
+- When a whole **phase** ships, fold its now-current architecture into `CLAUDE.md` and mark
+  the phase `✅ done` in its heading.
+- Update `CHANGELOG.md` for anything user-visible, as always.
 
 ## Decision (2026-06)
 
@@ -52,21 +61,25 @@ koin/
   .github/workflows/ci.yml
 ```
 
-## Phase 1 — "real codebase," still local-first
+## Phase 1 — "real codebase," still local-first  (status: in progress)
 
 Each step is a small, single-session task. **Keep the test suite green after every step**,
-and land each as its own commit/PR so it's reviewable and revertible.
+and land each as its own commit/PR so it's reviewable and revertible. Tick steps off as they
+land (see "Tracking progress" above).
 
-1. **Scaffold Vite + TS + Vitest.** Build & serve `index.html`; no logic changes yet.
-2. **Port `core/` to TypeScript first** (parser → rules → insights → defaults), defining
-   `types.ts`. Migrate the existing tests to Vitest. Safest, highest-value port.
-3. **Split `app.js` into `ui/*` modules**, converting to TS as you go. No behavior change.
-4. **Make IndexedDB (Dexie) the storage backend.** No migration — users re-import CSVs.
-   Keep "Export backup" working as the durable escape hatch.
-5. **PWA** via `vite-plugin-pwa` — installable, offline.
-6. **Deploy** to GitHub Pages via Actions (build → publish `dist/`).
-7. **OSS hygiene:** CI runs Vitest on every PR; add `LICENSE` (MIT), `CONTRIBUTING.md`,
-   issue/PR templates. → This is the **Stage 0 → Stage 1** transition.
+- [x] **1. Scaffold Vite + TS + Vitest.** Build & serve `index.html`; no logic changes yet.
+      — done: `package.json`, `vite.config.ts`, `tsconfig.json`, `src/main.ts` (loads the
+      legacy scripts in order), Vitest (`smoke` + jsdom `boot` tests) with the Node runner
+      kept as `test:legacy`. `server.js` → `server.cjs` (superseded by Vite; retire in Step 4).
+- [ ] **2. Port `core/` to TypeScript first** (parser → rules → insights → defaults),
+      defining `types.ts`. Migrate the existing tests to Vitest. Safest, highest-value port.
+- [ ] **3. Split `app.js` into `ui/*` modules**, converting to TS as you go. No behavior change.
+- [ ] **4. Make IndexedDB (Dexie) the storage backend.** No migration — users re-import CSVs.
+      Keep "Export backup" working as the durable escape hatch.
+- [ ] **5. PWA** via `vite-plugin-pwa` — installable, offline.
+- [ ] **6. Deploy** to GitHub Pages via Actions (build → publish `dist/`).
+- [ ] **7. OSS hygiene:** CI runs Vitest on every PR; add `LICENSE` (MIT), `CONTRIBUTING.md`,
+      issue/PR templates. → This is the **Stage 0 → Stage 1** transition.
 
 **Retire `server.js`.** Its only job was cross-browser local persistence via `~/.koin`
 (with shrink-guard, dirty-beacon, and the PreToolUse hook protecting it). Vite's dev server
