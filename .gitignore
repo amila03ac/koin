@@ -1,7 +1,8 @@
 # --- Your real financial data — NEVER commit this ---
-# All CSVs in data/ are ignored except the synthetic sample.
+# All CSVs in data/ are ignored except the synthetic samples.
 data/*.csv
 !data/Transactions.sample.csv
+!data/Transactions.sample-detailed.csv
 # App backups exported via "Export backup"
 koin-backup-*.json
 # The live data file lives in ~/.koin (outside the repo) — listed here as a reminder.

@@ -14,7 +14,11 @@ MVP. Single-account, single-user, runs entirely in the browser.
 
 ## What it does
 
-- **Import** a bank CSV (`Date, Description, Credit, Debit, Balance`) via a file picker.
+- **Import** a bank CSV via a file picker. Two layouts are auto-detected: the original
+  `Date, Description, Credit, Debit, Balance`, and a more detailed export
+  (`Transaction Date, Details, …, Debit, Credit, Balance, Original Description`). Only the
+  relevant columns are read; extra columns (the second bank's category/account/tags) are
+  ignored so both banks categorize consistently via Koin's own rules.
 - **Keep history** — re-importing overlapping months merges by a stable transaction id
   instead of creating duplicates. Add new CSVs each month and they accumulate.
 - **Views** — switch between yearly, monthly, and weekly periods.
@@ -81,7 +85,8 @@ Koin/
   js/
     defaults.js         Seed categories + rules, embedded as JS (first-run only)
     store.js            Storage adapter: file backend (server.js) OR localStorage fallback
-    parser.js           CSV -> normalized transactions (date extraction, signing, ids)
+    parser.js           CSV -> normalized transactions; multi-bank "format profiles",
+                        date extraction, signing, ids
     rules.js            Ignore patterns, auto-categorization, recurring detection
     insights.js         Pure aggregation: period filtering, category/merchant rollups
     charts.js           Dependency-free inline-SVG donut + bar charts
@@ -90,7 +95,8 @@ Koin/
     categories.default.json   Human-readable mirror of the seed categories
     rules.default.json        Human-readable mirror of the seed ignore + category rules
   data/
-    Transactions.sample.csv   The original statement, kept as sample/test data
+    Transactions.sample.csv            Synthetic Bank A (standard) sample/test data
+    Transactions.sample-detailed.csv   Synthetic Bank B (detailed) sample/test data
 ```
 
 **Why classic scripts, not ES modules?** Chrome blocks ES-module and `fetch()`
@@ -135,7 +141,18 @@ freshly parsed data, keyed by the stable `id`.
 
 ## CSV quirks this codebase handles (learned from the real data)
 
-- Dates are **DD/MM/YYYY** (Australian). Do not parse as US MM/DD.
+- **Two CSV layouts**, auto-detected by sniffing the header row (`Koin.parser` →
+  `FORMATS` / `detectFormat`). Each layout is a small "format profile" mapping our fields
+  to that bank's columns + a date parser; the first profile whose `detect(headers)` matches
+  wins (list more specific layouts first). Adding a bank = add a profile, not a new parser.
+  - **Bank A (`standard`)**: `Date, Description, Credit, Debit, Balance`; `DD/MM/YYYY`;
+    debits negative; merchant derived from the description.
+  - **Bank B (`detailed`)**: `Transaction Date, Details, …, Debit, Credit, Balance,
+    Original Description`; `DD Mon YYYY` (e.g. `03 Jun 2026`); debits **positive**; merchant
+    taken from the clean `Details` column; `Original Description` is the dedup/effective-date
+    source. Its `Account`/`Category`/`Subcategory`/`Tags`/`Notes` columns are intentionally
+    **ignored** (Koin's own rules categorize, for cross-bank consistency).
+- Dates are **DD/MM/YYYY** (Australian) in Bank A. Do not parse as US MM/DD.
 - Debits are **negative** numbers in the `Debit` column; `Credit` holds positive income.
 - ~75% of descriptions embed the real event date as `Date DD Mon YYYY` (the CSV `Date`
   is the *posting* date, which can be 1–3 days later). Koin prefers the embedded date as
@@ -148,8 +165,9 @@ freshly parsed data, keyed by the stable `id`.
   be internal moves between your own/family accounts rather than real spending. These are
   **not** ignored by default (Koin can't know); add a pattern in the Rules editor to exclude
   them.
-- `data/Transactions.sample.csv` is **synthetic** demo/test data (fake merchants + people),
-  safe to commit. Real statements must never be committed (see `.gitignore`).
+- `data/Transactions.sample.csv` (Bank A) and `data/Transactions.sample-detailed.csv`
+  (Bank B) are **synthetic** demo/test data (fake merchants + people), safe to commit. Real
+  statements must never be committed (see `.gitignore`).
 
 ## Conventions
 

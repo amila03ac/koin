@@ -1,0 +1,7 @@
+Transaction Date,Details,Account,Category,Subcategory,Tags,Notes,Debit,Credit,Balance,Original Description
+"06 Mar 2026","Globex Supermarket","Everyday","Food & Drink","Groceries","","","82.50","","1417.50","X100200305 Globex Supermarket $82.50"
+"05 Mar 2026","Acme Gift Card","Everyday","Personal","Other Personal Expenses","","","45.00","","1500.00","X100200304 Acme $47.00"
+"04 Mar 2026","Initech Cafe","Everyday","Food & Drink","Cafe","","","6.40","","1545.00","X100200303 Initech Cafe $6.40"
+"03 Mar 2026","Payroll","Everyday","Income","Wages","","","","2500.00","1551.40","X100200302 Payroll deposit"
+"02 Mar 2026","Hooli Mobile","Everyday","Utilities","Phone","","","39.99","","-948.60","X100200301 Hooli Mobile $39.99"
+"01 Mar 2026","Globex Supermarket","Everyday","Food & Drink","Groceries","","","54.25","","-908.61","X100200300 Globex Supermarket $54.25"

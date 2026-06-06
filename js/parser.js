@@ -34,7 +34,14 @@
     return rows.filter((r) => r.some((v) => v.trim() !== ""));
   }
 
-  // "31/05/2026" (DD/MM/YYYY) -> "2026-05-31", or null.
+  // (day, "May"|"05", year) -> "YYYY-MM-DD", or null for an unknown month name.
+  function monthNameToIso(day, monStr, year) {
+    const mon = MONTHS[String(monStr).slice(0, 3).toLowerCase()];
+    if (mon === undefined) return null;
+    return `${year}-${String(mon + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  // "31/05/2026" (DD/MM/YYYY) -> "2026-05-31", or null. (Bank A date column.)
   function parsePostedDate(s) {
     const m = String(s).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (!m) return null;
@@ -42,15 +49,18 @@
     return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
 
+  // "03 Jun 2026" (DD Mon YYYY) -> "2026-06-03", or null. (Bank B date column.)
+  function parseMonthNameDate(s) {
+    const m = String(s).trim().match(/^(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})$/);
+    if (!m) return null;
+    return monthNameToIso(parseInt(m[1], 10), m[2], parseInt(m[3], 10));
+  }
+
   // Embedded "Date 30 May 2026" in a description -> ISO date, or null.
   function extractEffectiveDate(description) {
     const m = description.match(/Date\s+(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})/);
     if (!m) return null;
-    const day = parseInt(m[1], 10);
-    const mon = MONTHS[m[2].slice(0, 3).toLowerCase()];
-    const year = parseInt(m[3], 10);
-    if (mon === undefined) return null;
-    return `${year}-${String(mon + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return monthNameToIso(parseInt(m[1], 10), m[2], parseInt(m[3], 10));
   }
 
   // Merchant = text before first " - ", with store numbers / artifacts cleaned.
@@ -86,17 +96,57 @@
     return "t_" + (h >>> 0).toString(16).padStart(8, "0");
   }
 
-  // Main entry. Returns { transactions, skipped, headers }.
+  // Supported CSV layouts ("format profiles"). To add another bank, add a profile:
+  // `detect(headers)` recognizes it from the (lower-cased) header row, `cols` maps
+  // our fields to that bank's column names, `parseDate` reads its date format. Only
+  // the mapped columns are read — any extra columns (the bank's own categories,
+  // tags, account, etc.) are ignored. Profiles are tried in order; the first whose
+  // `detect` returns true wins, so list more specific layouts first.
+  const FORMATS = [
+    {
+      // Bank B: Transaction Date, Details, Account, Category, Subcategory, Tags,
+      //         Notes, Debit, Credit, Balance, Original Description
+      name: "detailed",
+      detect: (h) => h.includes("transaction date") && h.includes("original description"),
+      parseDate: parseMonthNameDate,
+      cols: {
+        date: "transaction date",
+        desc: "original description", // raw text (keeps the stable ref id for dedup)
+        merchant: "details",          // already a clean name — use it directly
+        credit: "credit", debit: "debit", balance: "balance",
+      },
+    },
+    {
+      // Bank A (original): Date, Description, Credit, Debit, Balance
+      name: "standard",
+      detect: (h) => h.includes("date") && h.includes("description"),
+      parseDate: parsePostedDate,
+      cols: {
+        date: "date", desc: "description",
+        credit: "credit", debit: "debit", balance: "balance",
+      },
+    },
+  ];
+
+  function detectFormat(headers) {
+    return FORMATS.find((f) => f.detect(headers)) || FORMATS[FORMATS.length - 1];
+  }
+
+  // Main entry. Auto-detects the CSV layout, then normalizes.
+  // Returns { transactions, skipped, headers, format }.
   function parse(text) {
     const rows = parseCsv(text);
-    if (rows.length === 0) return { transactions: [], skipped: 0, headers: [] };
+    if (rows.length === 0) return { transactions: [], skipped: 0, headers: [], format: null };
 
     const headers = rows[0].map((h) => h.trim().toLowerCase());
-    const iDate = headers.indexOf("date");
-    const iDesc = headers.indexOf("description");
-    const iCredit = headers.indexOf("credit");
-    const iDebit = headers.indexOf("debit");
-    const iBalance = headers.indexOf("balance");
+    const fmt = detectFormat(headers);
+    const at = (name) => (name ? headers.indexOf(name) : -1);
+    const iDate = at(fmt.cols.date);
+    const iDesc = at(fmt.cols.desc);
+    const iMerchant = at(fmt.cols.merchant);
+    const iCredit = at(fmt.cols.credit);
+    const iDebit = at(fmt.cols.debit);
+    const iBalance = at(fmt.cols.balance);
 
     const transactions = [];
     let skipped = 0;
@@ -104,20 +154,27 @@
     for (let r = 1; r < rows.length; r++) {
       const cells = rows[r];
       const description = (cells[iDesc] || "").trim();
-      const postedDate = parsePostedDate(cells[iDate] || "");
+      const postedDate = fmt.parseDate(cells[iDate] || "");
       if (!description || !postedDate) { skipped++; continue; }
 
-      const amount = signedAmount(cells[iCredit] || "", cells[iDebit] || "");
+      const amount = signedAmount(
+        iCredit >= 0 ? cells[iCredit] || "" : "",
+        iDebit >= 0 ? cells[iDebit] || "" : ""
+      );
       const effectiveDate = extractEffectiveDate(description) || postedDate;
       const receipt = (description.match(/Receipt\s+(\d+)/i) || [])[1] || "";
       const balanceRaw = iBalance >= 0 ? parseFloat((cells[iBalance] || "").replace(/[^0-9.\-]/g, "")) : NaN;
+      // Banks that give a clean merchant column use it; otherwise derive from the description.
+      const merchant = (iMerchant >= 0 && (cells[iMerchant] || "").trim())
+        ? (cells[iMerchant] || "").trim()
+        : extractMerchant(description);
 
       transactions.push({
         id: hashId([postedDate, amount.toFixed(2), receipt, description]),
         postedDate,
         effectiveDate,
         description,
-        merchant: extractMerchant(description),
+        merchant,
         amount,
         direction: amount < 0 ? "debit" : "credit",
         balance: isNaN(balanceRaw) ? null : balanceRaw,
@@ -128,8 +185,8 @@
         source: "csv",
       });
     }
-    return { transactions, skipped, headers };
+    return { transactions, skipped, headers, format: fmt.name };
   }
 
-  Koin.parser = { parse, parseCsv, parsePostedDate, extractEffectiveDate, extractMerchant };
+  Koin.parser = { parse, parseCsv, parsePostedDate, parseMonthNameDate, detectFormat, extractEffectiveDate, extractMerchant };
 })();

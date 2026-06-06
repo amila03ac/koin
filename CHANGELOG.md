@@ -13,6 +13,14 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 ## [Unreleased]
 
 ### Added
+- **Import a second bank's CSV format.** The importer now auto-detects the CSV layout
+  and supports two banks: the original `Date, Description, Credit, Debit, Balance` and a
+  more detailed export (`Transaction Date, Details, …, Debit, Credit, Balance, Original
+  Description`) with `DD Mon YYYY` dates and a positive-Debit convention. Only the
+  relevant columns are read — the second bank's own category/account/tags columns are
+  ignored so Koin categorizes both banks consistently. Layouts are defined as small
+  "format profiles" in `js/parser.js`, so adding a third bank later is one profile, not a
+  new parser.
 - **Edit any transaction's fields in the UI.** The edit (✏️) action now works on bank
   (imported) transactions too — change date, merchant, amount, direction, category, or
   description. Bank-row edits are stored as **non-destructive overrides** layered on the

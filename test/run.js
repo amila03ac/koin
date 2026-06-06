@@ -32,6 +32,28 @@ check("extracts embedded effective date", eff && eff.effectiveDate === "2026-03-
 const dd = Koin.parser.parsePostedDate("31/03/2026");
 check("DD/MM/YYYY parsed (not US MM/DD)", dd === "2026-03-31", dd);
 
+console.log("parser — second bank format (detailed)");
+const csvB = fs.readFileSync(path.join(root, "data/Transactions.sample-detailed.csv"), "utf8");
+const resB = Koin.parser.parse(csvB);
+check("detects the 'detailed' (Bank B) format", resB.format === "detailed", resB.format);
+check("standard CSV is detected as 'standard'", Koin.parser.parse(csv).format === "standard");
+check("parses every Bank B row", resB.transactions.length === 6, `${resB.transactions.length}`);
+check("skips nothing malformed (Bank B)", resB.skipped === 0, `${resB.skipped}`);
+check("DD Mon YYYY date parsed", Koin.parser.parseMonthNameDate("03 Jun 2026") === "2026-06-03",
+  Koin.parser.parseMonthNameDate("03 Jun 2026"));
+check("Bank B effective date uses the transaction date",
+  resB.transactions.every(t => /^\d{4}-\d{2}-\d{2}$/.test(t.effectiveDate)));
+check("Bank B debit (positive in CSV) becomes negative spend",
+  resB.transactions.filter(t => t.direction === "debit").every(t => t.amount < 0));
+const payroll = resB.transactions.find(t => /Payroll/i.test(t.description));
+check("Bank B credit row is positive income", payroll && payroll.amount === 2500, payroll && payroll.amount);
+check("Bank B merchant comes from the clean Details column",
+  resB.transactions.some(t => t.merchant === "Globex Supermarket"));
+check("Bank B ids are unique (dedup-safe)",
+  new Set(resB.transactions.map(t => t.id)).size === resB.transactions.length);
+check("re-importing Bank B yields identical ids (stable dedup)",
+  Koin.parser.parse(csvB).transactions.map(t => t.id).join() === resB.transactions.map(t => t.id).join());
+
 console.log("rules");
 const ruled = Koin.rules.apply(transactions, Koin.DEFAULT_RULES);
 check("ignores internal transfers", ruled.filter(t => t.ignored).length === 2);
