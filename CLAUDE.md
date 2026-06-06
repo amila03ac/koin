@@ -6,7 +6,7 @@ auto-categorizes them, and shows yearly / monthly / weekly spending with insight
 
 This is a personal project for a developer who is **new to software development**.
 Favour clarity over cleverness. Explain non-obvious decisions in comments. Keep the
-stack approachable (plain HTML + vanilla JS, no build step, no install).
+stack approachable (vanilla JS + TypeScript, bundled with Vite; no heavy frameworks).
 
 ## Status
 
@@ -53,21 +53,19 @@ MVP. Single-account, single-user, runs entirely in the browser.
 
 ## Architecture (and why)
 
-Static, no-build, dependency-free app. The key design rule is:
+Vite-built app (run with `npm run dev` / `npm run build`); TypeScript is being adopted
+module-by-module (the pure core first — see `docs/ARCHITECTURE.md`). The key design rule is:
 
 > **All persistence goes through the storage adapter in `js/store.js`.**
-> Nothing else touches storage. The adapter has two interchangeable backends behind one
-> async interface, and the rest of the app never knows which is active. To move to
-> IndexedDB or a full REST+DB backend later, you reimplement that one module — the UI is
+> Nothing else touches storage. The rest of the app never knows which backend is active. To
+> move to IndexedDB or a cloud backend later, you reimplement that one module — the UI is
 > unchanged.
 
-Two ways to run, two backends (auto-detected in `store.init()`):
-- **Double-click `index.html`** (`file://`) — backend = **localStorage** (per-browser).
-  Zero install, but data doesn't cross browsers.
-- **`node server.js`** then open `http://localhost:4178` — backend = **shared JSON file**
-  at `~/.koin/koin-data.json` via `GET/PUT /api/data`. Persists across **all browsers** on
-  the machine. Still no database, nothing stored in the project folder. `server.js` is a
-  ~60-line zero-dependency helper (localhost-only; not a production server).
+Run with `npm run dev` (→ http://localhost:4178); the backend is **localStorage**
+(per-browser), auto-selected in `store.init()`. Data persists per browser; cross-device sync
+is a later phase (`docs/ARCHITECTURE.md`). _(The old `node server.cjs` shared-file backend at
+`~/.koin/koin-data.json` is superseded by the Vite dev server and slated for removal in Phase
+1 Step 4; the notes below describe it while it still exists.)_
 
 > **`~/.koin/koin-data.json` is the user's LIVE data — never let tooling overwrite it.**
 > `server.js` honors `KOIN_DATA_DIR` to relocate the data file; `.claude/settings.json` sets
@@ -79,17 +77,23 @@ Two ways to run, two backends (auto-detected in `store.init()`):
 
 ```
 Koin/
-  index.html            Dashboard shell; loads the js/ files as classic scripts
-  server.js             Optional local helper: serves the app + a file-backed data API
+  index.html            Dashboard shell; loads src/main.ts (Vite entry)
+  vite.config.ts        Vite + Vitest config
+  tsconfig.json         TypeScript config
+  server.cjs            Legacy local helper (superseded by Vite; retired in Step 4)
   css/style.css         All styling
-  js/
-    defaults.js         Seed categories + rules, embedded as JS (first-run only)
-    store.js            Storage adapter: file backend (server.js) OR localStorage fallback
-    parser.js           CSV -> normalized transactions; multi-bank "format profiles",
-                        date extraction, signing, ids
-    rules.js            Ignore patterns, auto-categorization, recurring detection
-    categories.js       Pure category helpers: key slugification, uniqueness, colour validation
-    insights.js         Pure aggregation: period filtering, category/merchant rollups
+  src/
+    main.ts             Vite entry: loads typed core + the legacy UI scripts, in order
+    core/               PURE, typed, framework-free (no DOM, no storage)
+      types.ts          The normalized Transaction model + shared types
+      defaults.ts       Seed categories + rules (first-run only)
+      parser.ts         CSV -> normalized transactions; multi-bank "format profiles"
+      rules.ts          Ignore patterns, auto-categorization, recurring detection
+      insights.ts       Pure aggregation: period filtering, category/merchant rollups
+      global.ts         Back-compat bridge: registers core on global `Koin` for legacy UI
+  js/                   NOT-YET-PORTED legacy classic-scripts (converted in Step 3)
+    store.js            Storage adapter: localStorage backend
+    categories.js       Pure category helpers: slugification, uniqueness, colour validation
     charts.js           Dependency-free inline-SVG donut + bar charts
     app.js              Wires everything together; rendering + interactions
   config/
@@ -98,16 +102,20 @@ Koin/
   data/
     Transactions.sample.csv            Synthetic Bank A (standard) sample/test data
     Transactions.sample-detailed.csv   Synthetic Bank B (detailed) sample/test data
+  test/
+    core.test.ts        Vitest unit tests for the pure core
+    boot.test.ts        jsdom smoke test: the app boots + renders without errors
 ```
 
-**Why classic scripts, not ES modules?** Chrome blocks ES-module and `fetch()`
-loads from `file://`, which would break the "just double-click `index.html`" promise.
-So each `js/` file is a classic script that attaches to a single global `Koin`
-namespace (load order in `index.html` matters: `defaults` → `store` → `parser` →
-`rules` → `categories` → `insights` → `charts` → `app`), and the seed config is embedded in
-`js/defaults.js` instead of fetched. The `config/*.json` files are a readable mirror;
-if you change them, mirror the change in `defaults.js` too (or just edit in-app, which
-is authoritative once saved).
+**Module state (mid-migration — see `docs/ARCHITECTURE.md`).** The app is built with Vite.
+The **pure core** (`src/core/*.ts`) is typed ES modules. The **UI/storage** files (`js/*.js`)
+are still classic-script IIFEs that read the core off a global `Koin` namespace; `src/main.ts`
+loads everything in dependency order (`defaults` → `store` → `parser` → `rules` →
+`categories` → `insights` → `charts` → `app`), and `src/core/global.ts` registers the core on
+`Koin` for them. Step 3 converts the `js/*.js` files to typed modules and removes the bridge.
+The seed config is embedded in `src/core/defaults.ts` (the `config/*.json` files are a
+readable mirror; if you change them, mirror it there too, or just edit in-app — authoritative
+once saved).
 
 ### Data flow
 
@@ -161,7 +169,7 @@ freshly parsed data, keyed by the stable `id`.
 - The **merchant** is the substring before the first ` - `. Trailing store numbers and
   `\` artifacts are cleaned for grouping.
 - `Internal Transfer ...` rows are transfers to a savings account and are ignored **by
-  pattern**, not by hardcoding — see `js/defaults.js`.
+  pattern**, not by hardcoding — see `src/core/defaults.ts`.
 - Some recurring person-to-person payments (e.g. an Osko/PayID transfer to a relative) may
   be internal moves between your own/family accounts rather than real spending. These are
   **not** ignored by default (Koin can't know); add a pattern in the Rules editor to exclude
@@ -172,16 +180,16 @@ freshly parsed data, keyed by the stable `id`.
 
 ## Conventions
 
-- Vanilla JS (classic scripts on a global `Koin` namespace), no framework, no bundler,
-  no dependencies, no build step. Keep it that way for the MVP unless there's a strong
-  reason — the payoff is that `index.html` runs by double-clicking, offline.
+- Vanilla JS bundled with Vite, no UI framework. TypeScript for new/ported code; the pure
+  core (`src/core/*.ts`) is typed, the `js/*.js` UI is being converted (Step 3). Avoid adding
+  runtime dependencies without a strong reason — keep it lean and offline-capable (PWA later).
 - `store.js` is the only module allowed to read/write persistent storage.
-- Pure functions in `parser.js`, `rules.js`, `insights.js` (no DOM, no storage) so they
-  stay easy to test and reuse if this becomes a web/mobile app. They are tested headless
-  in Node via a `window = global` shim — see README.
+- Pure functions in `src/core/` (parser, rules, insights — no DOM, no storage) so they stay
+  easy to test and reuse if this becomes a web/mobile app. Tested with Vitest (`npm test`);
+  the jsdom `boot` test guards startup.
 - Money is handled in cents-safe ways where it matters; never trust float equality.
-- `js/defaults.js` holds the first-run seed for categories + rules. The live, user-edited
-  copy lives in storage and is authoritative once saved. Bump `Koin.PALETTE_VERSION` when
+- `src/core/defaults.ts` holds the first-run seed for categories + rules. The live,
+  user-edited copy lives in storage and is authoritative once saved. Bump `Koin.PALETTE_VERSION` when
   changing the default category colors; `migratePalette()` in `app.js` then refreshes
   stored colors for known keys on next load (preserving custom categories/labels/icons).
 - A category's `key` is its **stable id** — transactions, rules, and overrides all

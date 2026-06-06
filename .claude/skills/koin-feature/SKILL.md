@@ -66,9 +66,8 @@ and offer the adjustment. A good outcome is sometimes a reshaped or declined fea
 
 ## 4. Verify (required before claiming done)
 
-- `npm test` (Vitest) and `npm run typecheck` must pass; `npm run test:legacy` (the original
-  Node runner) too, until that migration finishes. Add/adjust tests for new pure logic, and
-  keep the jsdom `boot` test green.
+- `npm test` (Vitest) and `npm run typecheck` must pass. Add/adjust tests for new pure logic
+  (typed, under `test/`), and keep the jsdom `boot` test green.
 - Drive the real UI in the browser via `npm run dev` (http://localhost:4178) and confirm the
   feature works end-to-end, including persistence across reload and at least one edge case.
   Don't rely on screenshots alone — assert DOM/state via eval.

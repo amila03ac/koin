@@ -11,7 +11,6 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:legacy": "node test/run.cjs",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

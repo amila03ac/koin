@@ -1,19 +1,16 @@
 // Vite entry point.
 //
-// Phase 1 Step 1 (see docs/ARCHITECTURE.md): we have NOT rewritten the app yet — we just
-// load the existing classic-script modules for their side effects, in the same order the
-// old index.html used. Each legacy file attaches to the global `Koin` namespace (and reads
-// it as a bare global), which behaves identically whether it's a <script> tag or an ES
-// module import — so this is a pure tooling change with no logic change.
-//
-// Steps 2–3 will convert these into typed ES modules under src/core and src/ui and delete
-// this side-effect import list.
+// Phase 1 migration (see docs/ARCHITECTURE.md). The pure core (parser, rules, insights,
+// defaults) is now typed ES modules under src/core; they register on the global `Koin`
+// namespace for the not-yet-ported UI. The UI/storage files (store, categories, charts,
+// app) are still classic-script IIFEs loaded here for their side effects — Step 3 converts
+// them and deletes this list. Load order matters (globals first, app last).
 import "../css/style.css";
-import "../js/defaults.js";
+import "./core/defaults";
 import "../js/store.js";
-import "../js/parser.js";
-import "../js/rules.js";
+import "./core/parser";
+import "./core/rules";
 import "../js/categories.js";
-import "../js/insights.js";
+import "./core/insights";
 import "../js/charts.js";
 import "../js/app.js";

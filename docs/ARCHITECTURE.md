@@ -71,8 +71,12 @@ land (see "Tracking progress" above).
       — done: `package.json`, `vite.config.ts`, `tsconfig.json`, `src/main.ts` (loads the
       legacy scripts in order), Vitest (`smoke` + jsdom `boot` tests) with the Node runner
       kept as `test:legacy`. `server.js` → `server.cjs` (superseded by Vite; retire in Step 4).
-- [ ] **2. Port `core/` to TypeScript first** (parser → rules → insights → defaults),
+- [x] **2. Port `core/` to TypeScript first** (parser → rules → insights → defaults),
       defining `types.ts`. Migrate the existing tests to Vitest. Safest, highest-value port.
+      — done: `src/core/{types,defaults,parser,rules,insights,global}.ts`; tests migrated to
+      `test/core.test.ts` (Vitest, 41 cases); `test/run.cjs` removed. Core modules still
+      register on the global `Koin` via `src/core/global.ts` for the legacy UI (removed in
+      Step 3). Legacy `js/categories.js` is still global, tested via that bridge.
 - [ ] **3. Split `app.js` into `ui/*` modules**, converting to TS as you go. No behavior change.
 - [ ] **4. Make IndexedDB (Dexie) the storage backend.** No migration — users re-import CSVs.
       Keep "Export backup" working as the durable escape hatch.

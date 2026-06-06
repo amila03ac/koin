@@ -13,6 +13,12 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 ## [Unreleased]
 
 ### Changed
+- **Ported the pure core to TypeScript.** Phase 1 Step 2: `parser`, `rules`, `insights`, and
+  the seed `defaults` are now typed ES modules under `src/core/` (with a shared `types.ts`
+  for the transaction model), and the test suite is fully migrated to **Vitest**
+  (`test/core.test.ts`). Behavior is unchanged — the modules still register on the global
+  `Koin` namespace for the not-yet-ported UI, which Step 3 removes. The old Node test runner
+  (`test/run.cjs`) is retired in favour of `npm test`.
 - **Adopted a build step (Vite + TypeScript + Vitest).** Phase 1 Step 1 of the
   [architecture plan](docs/ARCHITECTURE.md): the app is now served/bundled by Vite and run
   with `npm run dev` / `npm run build` (Node 18+), TypeScript is being adopted module by

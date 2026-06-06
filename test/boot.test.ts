@@ -10,13 +10,13 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 // Load the app exactly like src/main.ts (order matters; each attaches to global Koin).
-// Side-effect imports — these legacy files have no exports yet (converted in Step 2).
-import "../js/defaults.js";
+// Typed core modules + the not-yet-ported legacy UI files (side-effect imports).
+import "../src/core/defaults";
 import "../js/store.js";
-import "../js/parser.js";
-import "../js/rules.js";
+import "../src/core/parser";
+import "../src/core/rules";
 import "../js/categories.js";
-import "../js/insights.js";
+import "../src/core/insights";
 import "../js/charts.js";
 import "../js/app.js";
 

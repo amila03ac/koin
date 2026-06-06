@@ -65,9 +65,8 @@ current architecture and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the ev
 ## Tests
 
 ```bash
-npm test          # Vitest (unit + a jsdom boot smoke test)
+npm test          # Vitest: typed unit tests for the core + a jsdom boot smoke test
 npm run typecheck # tsc --noEmit
-npm run test:legacy   # the original Node test runner (kept until tests finish migrating)
 ```
 
 ## License
