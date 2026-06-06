@@ -13,6 +13,15 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 ## [Unreleased]
 
 ### Added
+- **Add & edit categories in the UI.** The Rules modal now has a friendly **Categories**
+  manager: rename any category, pick its colour with a swatch, set an emoji icon, and
+  **＋ Add category** for new ones — all applied everywhere immediately (donut, legend,
+  filter, and every row's dropdown). A category's internal **key is immutable** (it's the
+  id your transactions, rules, and overrides reference), so renaming never loses anything;
+  the fixed key is shown, greyed, on each row. A brand-new category's key is derived from
+  its name and re-derived on rename only while it's still unused, then frozen. New pure
+  helper module `js/categories.js` (key slugification + colour validation) with tests; the
+  raw-JSON categories editor is replaced by this list (Advanced now holds rules only).
 - **Import a second bank's CSV format.** The importer now auto-detects the CSV layout
   and supports two banks: the original `Date, Description, Credit, Debit, Balance` and a
   more detailed export (`Transaction Date, Details, …, Debit, Credit, Balance, Original

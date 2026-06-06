@@ -599,38 +599,42 @@
       categoryRules: (state.rules.categoryRules || []).filter((r) => !r.learned),
     };
     const ta = h("textarea", { class: "json-editor", spellcheck: "false" }, JSON.stringify(handWritten, null, 2));
-    const cta = h("textarea", { class: "json-editor", spellcheck: "false" }, JSON.stringify(state.categories, null, 2));
+
+    // Friendly category manager (add / rename / recolor). Like the learned-rules list,
+    // edits here persist immediately — so it owns categories outright and the raw JSON
+    // editor below holds only rules (the two never fight over the same data).
+    const categoryWrap = h("div", { class: "category-list" });
+    renderCategoryList(categoryWrap);
 
     const advanced = h("details", { class: "advanced" }, [
-      h("summary", {}, "Advanced — edit raw rules & categories (JSON)"),
+      h("summary", {}, "Advanced — edit raw rules (JSON)"),
       h("div", { class: "form" }, [
-        h("p", { class: "small muted" }, "Ignore patterns flag internal transfers so they don't count as spending. Category rules auto-assign categories (first match wins). Matching is case-insensitive; set \"isRegex\": true for a regular expression. (Learned rules are managed in the list above.)"),
+        h("p", { class: "small muted" }, "Ignore patterns flag internal transfers so they don't count as spending. Category rules auto-assign categories (first match wins). Matching is case-insensitive; set \"isRegex\": true for a regular expression. (Learned rules and categories are managed in the lists above.)"),
         field("Ignore patterns + hand-written category rules", ta),
-        field("Categories", cta),
         h("p", { class: "small muted" }, "“Save” applies edited rules to all auto-categorized transactions immediately. “Save & apply to history” goes further: it also re-runs the rules over transactions you'd categorised by hand, clearing those one-off edits so the rules win."),
       ]),
     ]);
 
     const body = h("div", { class: "form" }, [
+      h("h3", { class: "rules-heading" }, "Categories"),
+      h("p", { class: "small muted" }, "Rename a category, pick its colour, or set an emoji icon — changes apply everywhere immediately. The grey id on the right is the fixed internal key (it stays put when you rename, so nothing loses its category)."),
+      categoryWrap,
+      h("button", { class: "btn ghost add-cat-btn", onclick: () => addCategory(categoryWrap) }, "＋ Add category"),
       h("h3", { class: "rules-heading" }, "Learned rules"),
       h("p", { class: "small muted" }, "Categories Koin remembered when you categorised an uncategorised transaction. Each applies to that merchant across all history and future imports. Change the category or remove a rule below — it takes effect immediately."),
       learnedWrap,
       advanced,
     ]);
 
-    // Validate + persist the editors. Learned rules (managed by the list, already saved)
-    // are re-attached AFTER the hand-written ones so hand-written rules still win.
+    // Validate + persist the rules editor. Learned rules (managed by the list, already
+    // saved) are re-attached AFTER the hand-written ones so hand-written rules still win.
     const saveEditors = async () => {
       try {
         const parsed = JSON.parse(ta.value);
-        const c = JSON.parse(cta.value);
         const learned = (state.rules.categoryRules || []).filter((r) => r.learned);
         const handCats = (parsed.categoryRules || []).filter((r) => !r.learned); // ignore stray learned flags
         state.rules = { ...parsed, categoryRules: [...handCats, ...learned] };
-        state.categories = c;
-        state.catMap = Object.fromEntries(c.map((x) => [x.key, x]));
-        await store.setRules(state.rules); await store.setCategories(c);
-        $("#filter-cat").dataset.built = ""; $("#filter-cat").innerHTML = "";
+        await store.setRules(state.rules);
         compose(); renderAll();
         return true;
       } catch (err) { toast("Invalid JSON: " + err.message); return false; }
@@ -704,6 +708,81 @@
         toast(`Restored “${rule.match}”.`);
       },
     });
+  }
+
+  // ---- category manager (Rules modal) -------------------------------------
+  // Persist the (already-mutated) category list and re-render everything that depends on
+  // it: catMap, the donut/legend colours, the filter dropdown, and the per-row selects.
+  async function persistCategories() {
+    state.catMap = Object.fromEntries(state.categories.map((c) => [c.key, c]));
+    await store.setCategories(state.categories);
+    $("#filter-cat").dataset.built = ""; $("#filter-cat").innerHTML = ""; // rebuild with new labels/icons
+    compose(); renderAll();
+  }
+
+  // Is this category key referenced anywhere? Used to decide whether a freshly-added
+  // category's key may still be re-derived from a rename (safe only while unused).
+  function categoryUsed(key) {
+    return state.effective.some((t) => t.category === key)
+      || state.manual.some((t) => t.category === key)
+      || Object.values(state.overrides).some((o) => o && o.category === key)
+      || (state.rules.categoryRules || []).some((r) => r.category === key);
+  }
+
+  // Render (or re-render) the editable list of categories into `container`.
+  function renderCategoryList(container) {
+    container.innerHTML = "";
+    for (const cat of state.categories) container.appendChild(categoryRow(cat, container));
+  }
+
+  // One editable row: colour swatch, emoji icon, display name, and the fixed key.
+  function categoryRow(cat, container) {
+    // <input type=color> requires #rrggbb; fall back for shorthand/invalid stored colours.
+    const colorVal = Koin.categories.isHexColor(cat.color) && cat.color.length === 7 ? cat.color : "#888888";
+    const color = h("input", { type: "color", class: "cat-color", value: colorVal, title: "Pick a colour" });
+    color.addEventListener("input", async () => { cat.color = color.value; await persistCategories(); });
+
+    const icon = h("input", { type: "text", class: "cat-icon", maxlength: "4", value: cat.icon || "", title: "Emoji / icon", "aria-label": "Icon" });
+    icon.addEventListener("change", async () => { cat.icon = icon.value.trim(); await persistCategories(); });
+
+    const label = h("input", { type: "text", class: "cat-label", value: cat.label || "", title: "Display name", "aria-label": "Category name" });
+    label.addEventListener("change", async () => {
+      const v = label.value.trim();
+      if (!v) { label.value = cat.label; return; } // names can't be blank — revert
+      cat.label = v;
+      // While a category is still unused, keep its internal key in step with the name so
+      // backups/JSON stay readable. Once it's referenced anywhere, the key freezes.
+      if (!categoryUsed(cat.key)) {
+        cat.key = Koin.categories.uniqueKey(v, state.categories.filter((c) => c !== cat).map((c) => c.key));
+        renderCategoryList(container); // refresh the shown key
+      }
+      await persistCategories();
+    });
+
+    return h("div", { class: "category-row" }, [
+      color, icon, label,
+      h("span", { class: "cat-key muted small", title: "Internal id (fixed — referenced by your transactions & rules)" }, cat.key),
+    ]);
+  }
+
+  // Add a new category. It lands just before "Uncategorized" (so that stays last), with a
+  // generic name you rename inline; the name field is focused for a quick edit.
+  async function addCategory(container) {
+    const cat = {
+      key: Koin.categories.uniqueKey("New category", state.categories.map((c) => c.key)),
+      label: "New category",
+      color: "#8a8f98",
+      icon: "🏷️",
+    };
+    const idx = state.categories.findIndex((c) => c.key === "uncategorized");
+    if (idx >= 0) state.categories.splice(idx, 0, cat); else state.categories.push(cat);
+    await persistCategories();
+    renderCategoryList(container);
+    const rows = container.querySelectorAll(".category-row");
+    const row = rows[idx >= 0 ? idx : rows.length - 1];
+    const input = row && row.querySelector(".cat-label");
+    if (input) { input.focus(); input.select(); }
+    toast("Added a category — give it a name, colour and icon.");
   }
 
   // Re-run the current rules across ALL transactions, including ones the user had

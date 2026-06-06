@@ -8,7 +8,7 @@ const path = require("path");
 
 global.window = global; // so `window.Koin = ...` creates a real global `Koin`
 const root = path.join(__dirname, "..");
-for (const f of ["js/defaults.js", "js/parser.js", "js/rules.js", "js/insights.js"]) {
+for (const f of ["js/defaults.js", "js/parser.js", "js/rules.js", "js/categories.js", "js/insights.js"]) {
   eval(fs.readFileSync(path.join(root, f), "utf8"));
 }
 
@@ -75,6 +75,23 @@ check("removing a learned rule un-categorizes its merchant", lrGone.length >= 2 
 const uber = Koin.rules.apply(transactions, { ignorePatterns: [], categoryRules: [{ match: "UBER EATS", category: "dining", isRegex: false, learned: true }] })
   .filter(t => /uber/i.test(t.merchant));
 check("merchant-haystack lets a learned rule match cleaned merchant text", uber.length >= 1 && uber.every(t => t.category === "dining"));
+
+console.log("categories");
+const C = Koin.categories;
+check("slugify lowercases + hyphenates", C.slugify("Pets & Vet!") === "pets-vet", C.slugify("Pets & Vet!"));
+check("slugify collapses runs + trims hyphens", C.slugify("  Health   / Pharmacy  ") === "health-pharmacy", C.slugify("  Health   / Pharmacy  "));
+check("slugify of symbols-only is empty", C.slugify("***") === "");
+check("uniqueKey derives a key from the label", C.uniqueKey("Travel", ["groceries", "dining"]) === "travel");
+check("uniqueKey suffixes on collision", C.uniqueKey("Groceries", ["groceries"]) === "groceries-2");
+check("uniqueKey keeps suffixing past collisions", C.uniqueKey("Groceries", ["groceries", "groceries-2"]) === "groceries-3");
+check("uniqueKey falls back for empty labels", C.uniqueKey("***", []) === "category");
+check("isHexColor accepts #rrggbb and #rgb", C.isHexColor("#7a8450") && C.isHexColor("#FFF"));
+check("isHexColor rejects junk", !C.isHexColor("red") && !C.isHexColor("#12") && !C.isHexColor(""));
+// every seed category has a valid hex colour (so <input type=color> can show it)
+check("seed categories all have valid hex colours", Koin.DEFAULT_CATEGORIES.every((c) => C.isHexColor(c.color)));
+// seed keys are already unique (the manager relies on key uniqueness as an invariant)
+check("seed category keys are unique",
+  new Set(Koin.DEFAULT_CATEGORIES.map((c) => c.key)).size === Koin.DEFAULT_CATEGORIES.length);
 
 console.log("insights");
 const mar = Koin.insights.filterByPeriod(ruled, "month", "2026-03-15");

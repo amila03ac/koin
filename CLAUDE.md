@@ -88,6 +88,7 @@ Koin/
     parser.js           CSV -> normalized transactions; multi-bank "format profiles",
                         date extraction, signing, ids
     rules.js            Ignore patterns, auto-categorization, recurring detection
+    categories.js       Pure category helpers: key slugification, uniqueness, colour validation
     insights.js         Pure aggregation: period filtering, category/merchant rollups
     charts.js           Dependency-free inline-SVG donut + bar charts
     app.js              Wires everything together; rendering + interactions
@@ -103,7 +104,7 @@ Koin/
 loads from `file://`, which would break the "just double-click `index.html`" promise.
 So each `js/` file is a classic script that attaches to a single global `Koin`
 namespace (load order in `index.html` matters: `defaults` → `store` → `parser` →
-`rules` → `insights` → `charts` → `app`), and the seed config is embedded in
+`rules` → `categories` → `insights` → `charts` → `app`), and the seed config is embedded in
 `js/defaults.js` instead of fetched. The `config/*.json` files are a readable mirror;
 if you change them, mirror the change in `defaults.js` too (or just edit in-app, which
 is authoritative once saved).
@@ -183,6 +184,12 @@ freshly parsed data, keyed by the stable `id`.
   copy lives in storage and is authoritative once saved. Bump `Koin.PALETTE_VERSION` when
   changing the default category colors; `migratePalette()` in `app.js` then refreshes
   stored colors for known keys on next load (preserving custom categories/labels/icons).
+- A category's `key` is its **stable id** — transactions, rules, and overrides all
+  reference it. **Never rename a key** (you'd orphan that data). The in-app Categories
+  manager (Rules modal) edits only `label`/`color`/`icon`; new categories get a key
+  slugified from the name (`js/categories.js`), re-derived on rename *only while the
+  category is unused*, then frozen. There's no in-app delete (would orphan referencing
+  rows) — remove via the Advanced JSON / a restored backup if truly needed.
 - Colors live in CSS variables in `css/style.css` (`:root`) — earthy/muted palette. The
   trend-bar color is read from `--primary` at render time so it stays in sync.
 
