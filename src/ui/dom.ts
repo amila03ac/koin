@@ -30,3 +30,5 @@ export const money = (n: number): string =>
 
 export const fmtDate = (iso: string): string =>
   new Date(iso + "T00:00:00Z").toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+
+export const todayIso = (): string => new Date().toISOString().slice(0, 10);

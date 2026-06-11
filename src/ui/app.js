@@ -8,8 +8,10 @@ import * as insights from "../core/insights";
 import * as charts from "./charts";
 import * as categories from "../core/categories";
 import { DEFAULT_CATEGORIES, DEFAULT_RULES, PALETTE_VERSION } from "../core/defaults";
-import { h, $, money, fmtDate } from "./dom";
+import { h, $, money, fmtDate, todayIso } from "./dom";
 import { toast } from "./toast";
+import { openModal } from "./modal";
+import { exportBackup, importBackup, resetAll } from "./backup";
 
 (function () {
 
@@ -74,7 +76,6 @@ import { toast } from "./toast";
     await store.setMeta(meta);
   }
 
-  function todayIso() { return new Date().toISOString().slice(0, 10); }
   function latestDate() {
     const all = state.effective;
     if (!all.length) return null;
@@ -791,45 +792,6 @@ import { toast } from "./toast";
     compose();
     renderAll();
     toast(`Re-applied rules to all history${cleared ? ` (cleared ${cleared} one-off category edit${cleared === 1 ? "" : "s"})` : ""}.`);
-  }
-
-  // ---- backup / reset -----------------------------------------------------
-  async function exportBackup() {
-    const dump = await store.exportAll();
-    const blob = new Blob([JSON.stringify(dump, null, 2)], { type: "application/json" });
-    const a = h("a", { href: URL.createObjectURL(blob), download: `koin-backup-${todayIso()}.json` });
-    document.body.appendChild(a); a.click(); a.remove();
-    toast("Backup downloaded.");
-  }
-  function importBackup(text) {
-    try {
-      const dump = JSON.parse(text);
-      store.importAll(dump).then(() => { toast("Backup restored. Reloading…"); setTimeout(() => location.reload(), 600); });
-    } catch (err) { toast("Invalid backup file."); }
-  }
-  async function resetAll() {
-    if (!confirm("Erase ALL Koin data (transactions, edits, rules) from this browser? Export a backup first if unsure.")) return;
-    await store.clearAll();
-    location.reload();
-  }
-
-  // ---- modal primitive ----------------------------------------------------
-  // extraButtons: optional [{ label, className, handler(close) }] rendered left of Cancel.
-  function openModal(title, body, onSave, extraButtons) {
-    const overlay = h("div", { class: "modal-overlay" });
-    const close = () => overlay.remove();
-    const save = async () => { const ok = await onSave(); if (ok !== false) close(); };
-    const footer = (extraButtons || []).map((b) =>
-      h("button", { class: b.className || "btn ghost", onclick: () => b.handler(close) }, b.label));
-    footer.push(h("button", { class: "btn ghost", onclick: close }, "Cancel"));
-    footer.push(h("button", { class: "btn primary", onclick: save }, "Save"));
-    overlay.appendChild(h("div", { class: "modal" }, [
-      h("div", { class: "modal-head" }, [h("h2", {}, title), h("button", { class: "icon-btn", onclick: close }, "✕")]),
-      h("div", { class: "modal-body" }, [body]),
-      h("div", { class: "modal-foot" }, footer),
-    ]));
-    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
-    document.body.appendChild(overlay);
   }
 
   document.addEventListener("DOMContentLoaded", init);
