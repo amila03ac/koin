@@ -69,3 +69,23 @@ test("renders the dashboard when transactions are present", async () => {
   expect(document.querySelectorAll("#insights .insight-box").length).toBe(3);
   expect(document.querySelectorAll("#period-jump option").length).toBeGreaterThan(0);
 });
+
+test("ignoring a row re-renders via the render bus (row drops out, override persists)", async () => {
+  const { transactions } = parser.parse(sampleCsv);
+  await store.setTransactions(transactions);
+  await store.setRules(DEFAULT_RULES);
+  await boot();
+
+  const before = document.querySelectorAll("#txn-body tr").length;
+  expect(before).toBeGreaterThan(0);
+
+  // First row's first action button is "Ignore". Clicking it must hide the row (default
+  // filter hides ignored) — proving table -> setOverride -> rerender -> renderAll worked.
+  const ignoreBtn = document.querySelector("#txn-body tr .row-actions button") as HTMLButtonElement;
+  ignoreBtn.dispatchEvent(new Event("click"));
+  await new Promise((r) => setTimeout(r, 30));
+
+  expect(document.querySelectorAll("#txn-body tr").length).toBe(before - 1);
+  const overrides = await store.getOverrides();
+  expect(Object.values(overrides).some((o) => o.ignored === true)).toBe(true);
+});

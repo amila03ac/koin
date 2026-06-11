@@ -101,8 +101,10 @@ Koin/
       backup.ts         Export / restore / reset all data
       charts.ts         Dependency-free inline-SVG donut + bar charts
       render-sections.ts  Leaf panel renderers: summary, charts, insights, period jump, filter
-      app.js            Bootstrap + render pipeline + table + editors (plain ES module;
-                        remaining table/editor split into ui/* is Step 3b)
+      render-bus.ts     setRenderer/rerender indirection (lets modules re-render w/o importing app)
+      table.js          Transaction table + row actions + add/edit modal (plain ES module)
+      app.js            Bootstrap + renderAll + rules/category editor (plain ES module;
+                        remaining editor split + typing is Step 3b)
   config/
     categories.default.json   Human-readable mirror of the seed categories
     rules.default.json        Human-readable mirror of the seed ignore + category rules

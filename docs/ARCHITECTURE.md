@@ -96,10 +96,14 @@ land (see "Tracking progress" above).
   - [x] _Slice 3b_ — extracted the leaf render-section renderers (summary, charts, insights,
         period-jump, cat-filter) + `periodToAnchor` into typed `src/ui/render-sections.ts`.
         One-way dependency (`renderAll` → sections); covered by the boot integration test.
-  - [ ] _Remaining_ — `renderAll` + the table (`renderTable`/categorize/learn/undo/ignore/
-        delete), the txn-edit modal, and the rules/category editor. These call back into
-        `renderAll` (bidirectional), so they need a render indirection or to move together.
-        Do under live verification. (`app.js` ~650 lines.)
+  - [x] _Slice 3c_ — extracted the table + its row interactions (categorize/learn/undo/
+        ignore/delete) and the add/edit transaction modal into `src/ui/table.js`, plus a
+        `src/ui/render-bus.ts` indirection (app registers `renderAll`; the table calls
+        `rerender()`) so the dependency stays one-way (`app → table`, no cycle). A boot
+        interaction test exercises table → bus → render. (`app.js` ~377 lines.)
+  - [ ] _Remaining_ — the rules/category editor (`openRulesModal` + learned-rule list +
+        category manager). Then type `app.js`/`table.js` (→ `.ts`). Do under live
+        verification.
 - [ ] **4. Make IndexedDB (Dexie) the storage backend.** No migration — users re-import CSVs.
       Keep "Export backup" working as the durable escape hatch.
 - [ ] **5. PWA** via `vite-plugin-pwa` — installable, offline.
