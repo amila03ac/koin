@@ -94,13 +94,15 @@ Koin/
     store/
       index.ts          Storage adapter (the ONLY persistence seam): localStorage backend
     ui/                 DOM layer
+      state.ts          Shared mutable app state + compose() (rules+overrides → effective)
       dom.ts            Tiny DOM helpers: h() element builder, $, money, fmtDate, todayIso
       toast.ts          Transient notification (with optional action button)
       modal.ts          Overlay modal primitive (openModal)
       backup.ts         Export / restore / reset all data
       charts.ts         Dependency-free inline-SVG donut + bar charts
-      app.js            Wires everything together; rendering + interactions (plain ES
-                        module; remaining stateful split into ui/* is Step 3b)
+      render-sections.ts  Leaf panel renderers: summary, charts, insights, period jump, filter
+      app.js            Bootstrap + render pipeline + table + editors (plain ES module;
+                        remaining table/editor split into ui/* is Step 3b)
   config/
     categories.default.json   Human-readable mirror of the seed categories
     rules.default.json        Human-readable mirror of the seed ignore + category rules

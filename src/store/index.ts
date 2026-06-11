@@ -7,9 +7,9 @@
 //   • "local" — browser localStorage (per-browser). The default under Vite.
 // `await store.init()` picks the backend at startup. Method names/return shapes are the same
 // for both, so the rest of Koin never knows or cares which is active.
-import type { Category, RuleSet, Transaction } from "../core/types";
+import type { Category, Override, RuleSet, Transaction } from "../core/types";
 
-export type OverrideMap = Record<string, Record<string, unknown>>;
+export type OverrideMap = Record<string, Override>;
 
 export interface Meta {
   schemaVersion: number;

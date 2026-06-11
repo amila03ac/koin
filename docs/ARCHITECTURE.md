@@ -90,9 +90,16 @@ land (see "Tracking progress" above).
         `fmtDate`/`todayIso`) and `src/ui/toast.ts`, both typed + unit-tested (`test/ui.test.ts`).
   - [x] _Slice 2_ — extracted the remaining UI primitives: `src/ui/modal.ts` (`openModal`)
         and `src/ui/backup.ts` (export / restore / reset), typed; modal unit-tested.
-  - [ ] _Remaining_ — the stateful core (shared `state`, the `compose`/`renderAll` pipeline,
-        table, txn modal, rules editor, category manager). High coupling — do under live
-        verification. (`app.js` ~798 lines.)
+  - [x] _Slice 3a_ — extracted shared `state` + `compose`/`latestDate`/`hasFieldEdits` into
+        typed `src/ui/state.ts` (`AppState`/`Filter` types; `Override` added to core types).
+        `compose` is now unit-tested (`test/state.test.ts`).
+  - [x] _Slice 3b_ — extracted the leaf render-section renderers (summary, charts, insights,
+        period-jump, cat-filter) + `periodToAnchor` into typed `src/ui/render-sections.ts`.
+        One-way dependency (`renderAll` → sections); covered by the boot integration test.
+  - [ ] _Remaining_ — `renderAll` + the table (`renderTable`/categorize/learn/undo/ignore/
+        delete), the txn-edit modal, and the rules/category editor. These call back into
+        `renderAll` (bidirectional), so they need a render indirection or to move together.
+        Do under live verification. (`app.js` ~650 lines.)
 - [ ] **4. Make IndexedDB (Dexie) the storage backend.** No migration — users re-import CSVs.
       Keep "Export backup" working as the durable escape hatch.
 - [ ] **5. PWA** via `vite-plugin-pwa` — installable, offline.

@@ -64,4 +64,8 @@ test("renders the dashboard when transactions are present", async () => {
   // The transaction table got rows, and the donut/legend rendered something.
   expect(document.querySelectorAll("#txn-body tr").length).toBeGreaterThan(0);
   expect(document.querySelector("#donut svg")).toBeTruthy();
+  // The section renderers (now in ui/render-sections) populated their panels.
+  expect(document.querySelectorAll("#summary .card").length).toBeGreaterThan(0);
+  expect(document.querySelectorAll("#insights .insight-box").length).toBe(3);
+  expect(document.querySelectorAll("#period-jump option").length).toBeGreaterThan(0);
 });

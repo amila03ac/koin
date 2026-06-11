@@ -1,33 +1,22 @@
-// app.js — wires storage + parser + rules + insights + charts into the UI.
-// This is the only place that touches the DOM. (Still plain JS for now; Step 3b types it
-// and splits it into ui/* modules — see docs/ARCHITECTURE.md.)
+// app.js — bootstrap + the render pipeline (renderAll), transaction table, and the
+// add/edit + rules/category editors. Imports the typed core, store, and ui/* modules.
+// (Plain JS for now; remaining table/editor extraction + typing is Step 3b — see
+// docs/ARCHITECTURE.md.)
 import { store } from "../store/index";
 import * as parser from "../core/parser";
-import * as rules from "../core/rules";
 import * as insights from "../core/insights";
-import * as charts from "./charts";
 import * as categories from "../core/categories";
 import { DEFAULT_CATEGORIES, DEFAULT_RULES, PALETTE_VERSION } from "../core/defaults";
 import { h, $, money, fmtDate, todayIso } from "./dom";
 import { toast } from "./toast";
 import { openModal } from "./modal";
 import { exportBackup, importBackup, resetAll } from "./backup";
+import { state, EDIT_FIELDS, hasFieldEdits, compose, latestDate } from "./state";
+import {
+  renderSummary, renderCharts, renderInsights, renderPeriodJump, renderCatFilter, periodToAnchor,
+} from "./render-sections";
 
 (function () {
-
-  // ---- app state ----------------------------------------------------------
-  const state = {
-    raw: [],          // imported CSV transactions
-    manual: [],       // user-created transactions
-    overrides: {},    // id -> { category, ignored, deleted }
-    rules: null,
-    categories: [],
-    catMap: {},       // key -> category def
-    period: "month",  // 'year' | 'month' | 'week'
-    anchor: null,     // ISO date within the active period
-    effective: [],    // composed list after rules + overrides
-    filter: { text: "", category: "all", showIgnored: false },
-  };
 
   // ---- bootstrap ----------------------------------------------------------
   async function init() {
@@ -74,43 +63,6 @@ import { exportBackup, importBackup, resetAll } from "./backup";
     }
     meta.paletteVersion = PALETTE_VERSION;
     await store.setMeta(meta);
-  }
-
-  function latestDate() {
-    const all = state.effective;
-    if (!all.length) return null;
-    return all.map((t) => insights.effDate(t)).sort().reverse()[0];
-  }
-
-  // Override fields that may edit an imported (bank) transaction. Stored per-id in
-  // state.overrides, layered over the pristine raw row in compose() so edits are
-  // non-destructive, re-import-safe, and reversible.
-  const EDIT_FIELDS = ["effectiveDate", "merchant", "description", "amount"];
-  function hasFieldEdits(o) { return !!o && EDIT_FIELDS.some((k) => o[k] != null); }
-
-  // ---- composition (rules + overrides) ------------------------------------
-  function compose() {
-    const ov = state.overrides;
-    let combined = state.raw.concat(state.manual).map((t) => {
-      const o = ov[t.id];
-      if (!o) return { ...t };
-      const n = { ...t };
-      // field edits (applied BEFORE rules so categorisation/recurring see the edits)
-      if (o.effectiveDate != null) n.effectiveDate = o.effectiveDate;
-      if (o.merchant != null) n.merchant = o.merchant;
-      if (o.description != null) n.description = o.description;
-      if (o.amount != null) { n.amount = o.amount; n.direction = o.amount < 0 ? "debit" : "credit"; }
-      // manual category choice
-      if (o.category != null) { n.category = o.category; n.categorySource = "manual"; }
-      return n;
-    });
-    let ruled = rules.apply(combined, state.rules);
-    ruled = ruled.map((t) => {
-      const o = ov[t.id];
-      if (o && o.ignored != null) return { ...t, ignored: o.ignored };
-      return t;
-    });
-    state.effective = ruled.filter((t) => !(ov[t.id] && ov[t.id].deleted));
   }
 
   async function setOverride(id, patch) {
@@ -182,12 +134,6 @@ import { exportBackup, importBackup, resetAll } from "./backup";
     $("#sample-load")?.addEventListener("click", loadSample);
   }
 
-  function periodToAnchor(key, period) {
-    if (period === "year") return key + "-01-01";
-    if (period === "month") return key + "-01";
-    return key; // week key is already a Monday ISO date
-  }
-
   function loadSample() {
     fetch("data/Transactions.sample.csv", { cache: "no-store" })
       .then((r) => { if (!r.ok) throw new Error("http"); return r.text(); })
@@ -212,100 +158,6 @@ import { exportBackup, importBackup, resetAll } from "./backup";
     renderInsights(inPeriod);
     renderCatFilter();
     renderTable();
-  }
-
-  function renderPeriodJump() {
-    const sel = $("#period-jump");
-    const periods = insights.availablePeriods(state.effective, state.period);
-    const cur = insights.periodKey(state.anchor, state.period);
-    sel.innerHTML = "";
-    for (const key of periods) {
-      const anchor = periodToAnchor(key, state.period);
-      sel.appendChild(h("option", { value: key, selected: key === cur ? "selected" : null },
-        insights.periodLabel(anchor, state.period)));
-    }
-  }
-
-  function renderSummary(tx) {
-    const s = insights.summary(tx);
-    const ignored = tx.filter((t) => t.ignored).length;
-    const cards = [
-      { label: "Spent", value: money(s.spent), cls: "neg" },
-      { label: "Transactions", value: String(s.count) },
-      { label: "Recurring", value: String(tx.filter((t) => t.recurring && !t.ignored).length) },
-      { label: "Ignored (transfers)", value: String(ignored), cls: "muted" },
-    ];
-    if (s.income > 0) cards.splice(1, 0, { label: "Income", value: money(s.income), cls: "pos" }, { label: "Net", value: money(s.net), cls: s.net < 0 ? "neg" : "pos" });
-    const wrap = $("#summary");
-    wrap.innerHTML = "";
-    for (const c of cards) {
-      wrap.appendChild(h("div", { class: "card" }, [
-        h("div", { class: "card-label" }, c.label),
-        h("div", { class: "card-value " + (c.cls || "") }, c.value),
-      ]));
-    }
-  }
-
-  function renderCharts(tx) {
-    const cats = insights.byCategory(tx);
-    const data = cats.map((c) => ({
-      label: (state.catMap[c.category] || {}).label || c.category,
-      value: c.total,
-      color: (state.catMap[c.category] || {}).color || "#cbd5e1",
-    }));
-    charts.donut($("#donut"), data);
-
-    const legend = $("#donut-legend");
-    legend.innerHTML = "";
-    const total = data.reduce((s, d) => s + d.value, 0) || 1;
-    for (const d of data) {
-      legend.appendChild(h("div", { class: "legend-row" }, [
-        h("span", { class: "legend-dot", style: `background:${d.color}` }),
-        h("span", { class: "legend-label" }, d.label),
-        h("span", { class: "legend-val" }, `${money(d.value)} · ${Math.round((d.value / total) * 100)}%`),
-      ]));
-    }
-
-    const primary = getComputedStyle(document.documentElement).getPropertyValue("--primary").trim() || "#6f7a4e";
-    charts.bars($("#trend"), insights.trendBuckets(tx, state.period, state.anchor), { color: primary });
-  }
-
-  function renderInsights(tx) {
-    const list = (title, rows) => {
-      const box = h("div", { class: "insight-box" }, [h("h3", {}, title)]);
-      if (!rows.length) box.appendChild(h("div", { class: "muted small" }, "Nothing here."));
-      for (const r of rows) {
-        box.appendChild(h("div", { class: "insight-row" }, [
-          h("span", { class: "insight-name" }, r.name),
-          h("span", { class: "insight-val" }, r.val),
-        ]));
-      }
-      return box;
-    };
-    const wrap = $("#insights");
-    wrap.innerHTML = "";
-    wrap.appendChild(list("Top merchants", insights.topMerchants(tx, 6).map((m) => ({
-      name: `${m.merchant} (${m.count})`, val: money(m.total),
-    }))));
-    wrap.appendChild(list("Biggest expenses", insights.biggestExpenses(tx, 6).map((t) => ({
-      name: t.merchant, val: money(-t.amount),
-    }))));
-    const recur = [];
-    const seen = new Set();
-    for (const t of tx.filter((t) => t.recurring && !t.ignored && t.amount < 0)) {
-      if (seen.has(t.merchant)) continue;
-      seen.add(t.merchant);
-      recur.push({ name: t.merchant, val: money(-t.amount) });
-    }
-    wrap.appendChild(list("Recurring / subscriptions", recur.slice(0, 6)));
-  }
-
-  function renderCatFilter() {
-    const sel = $("#filter-cat");
-    if (sel.dataset.built) return;
-    sel.appendChild(h("option", { value: "all" }, "All categories"));
-    for (const c of state.categories) sel.appendChild(h("option", { value: c.key }, `${c.icon} ${c.label}`));
-    sel.dataset.built = "1";
   }
 
   function categorySelect(txn) {

@@ -55,6 +55,19 @@ export interface Category {
   icon: string;
 }
 
+// Per-transaction adjustment, layered over the pristine imported row in compose(). Category
+// and ignore are decisions; the rest are field edits (see EDIT_FIELDS). `deleted` hides the
+// row. All non-destructive and re-import-safe.
+export interface Override {
+  category?: string;
+  ignored?: boolean;
+  deleted?: boolean;
+  effectiveDate?: string;
+  merchant?: string;
+  description?: string;
+  amount?: number;
+}
+
 export interface Summary {
   spent: number;
   income: number;
