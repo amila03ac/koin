@@ -83,9 +83,13 @@ land (see "Tracking progress" above).
       `Koin` bridge** (`src/core/global.ts` deleted, no more `registerGlobal`). A jsdom
       integration test now seeds data and asserts the dashboard renders. No behavior change.
 - [ ] **3b. Type + split `app.js`.** Rename `src/ui/app.js` → `.ts`, add types, and break the
-      ~860-line file into `ui/*` modules (import, table, rulesEditor, categories, modals,
-      toast). Best done with the live preview/Chrome tooling so each extraction gets a real
-      click-through. (`app.js` is currently a plain ES module, untyped — `checkJs` off.)
+      ~860-line file into `ui/*` modules. Best done with the live preview/Chrome tooling so
+      each extraction gets a real click-through. (`app.js` is a plain ES module, untyped —
+      `checkJs` off.)
+  - [x] _Slice 1_ — extracted the low-coupling helpers: `src/ui/dom.ts` (`h`/`$`/`money`/
+        `fmtDate`) and `src/ui/toast.ts`, both typed + unit-tested (`test/ui.test.ts`).
+  - [ ] _Remaining_ — the stateful split (shared `state`, render pipeline, table, modals,
+        rules editor, category manager). High coupling — do under live verification.
 - [ ] **4. Make IndexedDB (Dexie) the storage backend.** No migration — users re-import CSVs.
       Keep "Export backup" working as the durable escape hatch.
 - [ ] **5. PWA** via `vite-plugin-pwa` — installable, offline.

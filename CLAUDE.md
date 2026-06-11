@@ -94,9 +94,11 @@ Koin/
     store/
       index.ts          Storage adapter (the ONLY persistence seam): localStorage backend
     ui/                 DOM layer
+      dom.ts            Tiny DOM helpers: h() element builder, $, money, fmtDate
+      toast.ts          Transient notification (with optional action button)
       charts.ts         Dependency-free inline-SVG donut + bar charts
       app.js            Wires everything together; rendering + interactions (plain ES
-                        module; typed + split into ui/* in Step 3b)
+                        module; remaining typing + split into ui/* is Step 3b)
   config/
     categories.default.json   Human-readable mirror of the seed categories
     rules.default.json        Human-readable mirror of the seed ignore + category rules

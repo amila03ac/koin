@@ -8,6 +8,8 @@ import * as insights from "../core/insights";
 import * as charts from "./charts";
 import * as categories from "../core/categories";
 import { DEFAULT_CATEGORIES, DEFAULT_RULES, PALETTE_VERSION } from "../core/defaults";
+import { h, $, money, fmtDate } from "./dom";
+import { toast } from "./toast";
 
 (function () {
 
@@ -24,25 +26,6 @@ import { DEFAULT_CATEGORIES, DEFAULT_RULES, PALETTE_VERSION } from "../core/defa
     effective: [],    // composed list after rules + overrides
     filter: { text: "", category: "all", showIgnored: false },
   };
-
-  // ---- tiny DOM helper ----------------------------------------------------
-  function h(tag, attrs, children) {
-    const e = document.createElement(tag);
-    for (const [k, v] of Object.entries(attrs || {})) {
-      if (k === "class") e.className = v;
-      else if (k === "html") e.innerHTML = v;
-      else if (k.startsWith("on") && typeof v === "function") e.addEventListener(k.slice(2), v);
-      else if (v != null) e.setAttribute(k, v);
-    }
-    for (const c of [].concat(children || [])) {
-      if (c == null) continue;
-      e.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
-    }
-    return e;
-  }
-  const $ = (sel) => document.querySelector(sel);
-  const money = (n) => (n < 0 ? "-" : "") + "$" + Math.abs(n).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const fmtDate = (iso) => new Date(iso + "T00:00:00Z").toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
 
   // ---- bootstrap ----------------------------------------------------------
   async function init() {
@@ -830,7 +813,7 @@ import { DEFAULT_CATEGORIES, DEFAULT_RULES, PALETTE_VERSION } from "../core/defa
     location.reload();
   }
 
-  // ---- modal + toast primitives ------------------------------------------
+  // ---- modal primitive ----------------------------------------------------
   // extraButtons: optional [{ label, className, handler(close) }] rendered left of Cancel.
   function openModal(title, body, onSave, extraButtons) {
     const overlay = h("div", { class: "modal-overlay" });
@@ -847,23 +830,6 @@ import { DEFAULT_CATEGORIES, DEFAULT_RULES, PALETTE_VERSION } from "../core/defa
     ]));
     overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
     document.body.appendChild(overlay);
-  }
-  let toastTimer;
-  // toast(message) or toast(message, { label, fn }) to show an action button (e.g. Undo).
-  function toast(msg, action) {
-    let el = $("#toast");
-    if (!el) { el = h("div", { id: "toast" }); document.body.appendChild(el); }
-    el.innerHTML = "";
-    el.appendChild(h("span", {}, msg));
-    if (action) {
-      el.appendChild(h("button", {
-        class: "toast-action",
-        onclick: () => { el.classList.remove("show"); clearTimeout(toastTimer); action.fn(); },
-      }, action.label));
-    }
-    el.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove("show"), action ? 8000 : 4200);
   }
 
   document.addEventListener("DOMContentLoaded", init);
