@@ -77,7 +77,15 @@ land (see "Tracking progress" above).
       `test/core.test.ts` (Vitest, 41 cases); `test/run.cjs` removed. Core modules still
       register on the global `Koin` via `src/core/global.ts` for the legacy UI (removed in
       Step 3). Legacy `js/categories.js` is still global, tested via that bridge.
-- [ ] **3. Split `app.js` into `ui/*` modules**, converting to TS as you go. No behavior change.
+- [x] **3a. De-globalize the UI/storage.** Convert `store`/`categories`/`charts` to typed
+      modules (`src/store/index.ts`, `src/core/categories.ts`, `src/ui/charts.ts`); make
+      `app.js` a real ES module importing the core/store/charts directly; **remove the global
+      `Koin` bridge** (`src/core/global.ts` deleted, no more `registerGlobal`). A jsdom
+      integration test now seeds data and asserts the dashboard renders. No behavior change.
+- [ ] **3b. Type + split `app.js`.** Rename `src/ui/app.js` → `.ts`, add types, and break the
+      ~860-line file into `ui/*` modules (import, table, rulesEditor, categories, modals,
+      toast). Best done with the live preview/Chrome tooling so each extraction gets a real
+      click-through. (`app.js` is currently a plain ES module, untyped — `checkJs` off.)
 - [ ] **4. Make IndexedDB (Dexie) the storage backend.** No migration — users re-import CSVs.
       Keep "Export backup" working as the durable escape hatch.
 - [ ] **5. PWA** via `vite-plugin-pwa` — installable, offline.

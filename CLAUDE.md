@@ -56,7 +56,7 @@ MVP. Single-account, single-user, runs entirely in the browser.
 Vite-built app (run with `npm run dev` / `npm run build`); TypeScript is being adopted
 module-by-module (the pure core first — see `docs/ARCHITECTURE.md`). The key design rule is:
 
-> **All persistence goes through the storage adapter in `js/store.js`.**
+> **All persistence goes through the storage adapter in `src/store/index.ts`.**
 > Nothing else touches storage. The rest of the app never knows which backend is active. To
 > move to IndexedDB or a cloud backend later, you reimplement that one module — the UI is
 > unchanged.
@@ -83,19 +83,20 @@ Koin/
   server.cjs            Legacy local helper (superseded by Vite; retired in Step 4)
   css/style.css         All styling
   src/
-    main.ts             Vite entry: loads typed core + the legacy UI scripts, in order
+    main.ts             Vite entry: imports css + ui/app
     core/               PURE, typed, framework-free (no DOM, no storage)
       types.ts          The normalized Transaction model + shared types
       defaults.ts       Seed categories + rules (first-run only)
       parser.ts         CSV -> normalized transactions; multi-bank "format profiles"
       rules.ts          Ignore patterns, auto-categorization, recurring detection
       insights.ts       Pure aggregation: period filtering, category/merchant rollups
-      global.ts         Back-compat bridge: registers core on global `Koin` for legacy UI
-  js/                   NOT-YET-PORTED legacy classic-scripts (converted in Step 3)
-    store.js            Storage adapter: localStorage backend
-    categories.js       Pure category helpers: slugification, uniqueness, colour validation
-    charts.js           Dependency-free inline-SVG donut + bar charts
-    app.js              Wires everything together; rendering + interactions
+      categories.ts     Pure category helpers: slugification, uniqueness, colour validation
+    store/
+      index.ts          Storage adapter (the ONLY persistence seam): localStorage backend
+    ui/                 DOM layer
+      charts.ts         Dependency-free inline-SVG donut + bar charts
+      app.js            Wires everything together; rendering + interactions (plain ES
+                        module; typed + split into ui/* in Step 3b)
   config/
     categories.default.json   Human-readable mirror of the seed categories
     rules.default.json        Human-readable mirror of the seed ignore + category rules
@@ -104,18 +105,16 @@ Koin/
     Transactions.sample-detailed.csv   Synthetic Bank B (detailed) sample/test data
   test/
     core.test.ts        Vitest unit tests for the pure core
-    boot.test.ts        jsdom smoke test: the app boots + renders without errors
+    boot.test.ts        jsdom boot + integration tests (renders empty + seeded dashboard)
 ```
 
-**Module state (mid-migration — see `docs/ARCHITECTURE.md`).** The app is built with Vite.
-The **pure core** (`src/core/*.ts`) is typed ES modules. The **UI/storage** files (`js/*.js`)
-are still classic-script IIFEs that read the core off a global `Koin` namespace; `src/main.ts`
-loads everything in dependency order (`defaults` → `store` → `parser` → `rules` →
-`categories` → `insights` → `charts` → `app`), and `src/core/global.ts` registers the core on
-`Koin` for them. Step 3 converts the `js/*.js` files to typed modules and removes the bridge.
-The seed config is embedded in `src/core/defaults.ts` (the `config/*.json` files are a
-readable mirror; if you change them, mirror it there too, or just edit in-app — authoritative
-once saved).
+**Module state (mid-migration — see `docs/ARCHITECTURE.md`).** The app is a Vite-built ES
+module graph with **no global namespace**. The **pure core** (`src/core/*.ts`) and the
+**storage adapter** (`src/store/index.ts`) are typed; the **DOM layer** is `src/ui/`
+(`charts.ts` typed; `app.js` is a plain ES module that imports the core/store/charts
+directly — still untyped, typed + split into `ui/*` in Step 3b). The seed config lives in
+`src/core/defaults.ts` (the `config/*.json` files are a readable mirror; if you change them,
+mirror it there too, or just edit in-app — authoritative once saved).
 
 ### Data flow
 
@@ -181,7 +180,8 @@ freshly parsed data, keyed by the stable `id`.
 ## Conventions
 
 - Vanilla JS bundled with Vite, no UI framework. TypeScript for new/ported code; the pure
-  core (`src/core/*.ts`) is typed, the `js/*.js` UI is being converted (Step 3). Avoid adding
+  core (`src/core/*.ts`) and storage are typed; the `src/ui/` layer is next (`app.js` typed +
+  split in Step 3b). Avoid adding
   runtime dependencies without a strong reason — keep it lean and offline-capable (PWA later).
 - `store.js` is the only module allowed to read/write persistent storage.
 - Pure functions in `src/core/` (parser, rules, insights — no DOM, no storage) so they stay
@@ -195,7 +195,7 @@ freshly parsed data, keyed by the stable `id`.
 - A category's `key` is its **stable id** — transactions, rules, and overrides all
   reference it. **Never rename a key** (you'd orphan that data). The in-app Categories
   manager (Rules modal) edits only `label`/`color`/`icon`; new categories get a key
-  slugified from the name (`js/categories.js`), re-derived on rename *only while the
+  slugified from the name (`src/core/categories.ts`), re-derived on rename *only while the
   category is unused*, then frozen. There's no in-app delete (would orphan referencing
   rows) — remove via the Advanced JSON / a restored backup if truly needed.
 - Colors live in CSS variables in `css/style.css` (`:root`) — earthy/muted palette. The

@@ -2,7 +2,6 @@
 // copy to storage, that copy is authoritative. The human-readable mirrors in config/*.json
 // are kept for reference; if you edit those, mirror the change here too (or edit in-app).
 import type { Category, RuleSet } from "./types";
-import { registerGlobal } from "./global";
 
 // Bumped whenever the default palette changes, so existing installs can refresh their
 // category colors (see migratePalette in app.js) without losing data.
@@ -137,8 +136,3 @@ export const DEFAULT_RULES: RuleSet = {
     { match: "overdrawn", category: "fees" },
   ],
 };
-
-// Back-compat: the legacy UI reads these off the global `Koin` (Step 3 removes this).
-registerGlobal("PALETTE_VERSION", PALETTE_VERSION);
-registerGlobal("DEFAULT_CATEGORIES", DEFAULT_CATEGORIES);
-registerGlobal("DEFAULT_RULES", DEFAULT_RULES);

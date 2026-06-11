@@ -14,10 +14,9 @@ export default defineConfig({
     emptyOutDir: true,
   },
   test: {
-    // Legacy modules expect `window` to be the global object (as in a browser); the
-    // setup file mirrors that for Node, matching the old test/run.js shim.
+    // Pure-core tests run in Node; the jsdom boot test opts in per-file via
+    // `// @vitest-environment jsdom`.
     environment: "node",
-    setupFiles: ["./test/vitest.setup.ts"],
     include: ["test/**/*.test.ts"],
   },
 });

@@ -4,7 +4,6 @@
 import type {
   CategoryTotal, MerchantTotal, Period, Summary, TrendBucket, Transaction,
 } from "./types";
-import { registerGlobal } from "./global";
 
 const DAY = 86400000;
 
@@ -140,9 +139,3 @@ export {
   periodKey, periodLabel, shiftAnchor, filterByPeriod, availablePeriods,
   summary, byCategory, topMerchants, biggestExpenses, trendBuckets, effDate,
 };
-
-// Back-compat: the legacy UI reads `Koin.insights` (Step 3 removes this).
-registerGlobal("insights", {
-  periodKey, periodLabel, shiftAnchor, filterByPeriod, availablePeriods,
-  summary, byCategory, topMerchants, biggestExpenses, trendBuckets, effDate,
-});

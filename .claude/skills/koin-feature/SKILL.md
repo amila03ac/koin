@@ -17,24 +17,25 @@ duplicate them, it points at them:
 - `CLAUDE.md` — architecture, data model, CSV quirks, conventions. **Read fully.**
 - `ROADMAP.md` — direction + the **project stages** (we're at Stage 0: local POC).
 - `CHANGELOG.md` — what already shipped (recent entries show the working style).
-- `js/store.js`, `js/parser.js`, `js/rules.js`, `js/insights.js`, `js/app.js` — skim the
-  ones your change touches. `test/run.js` — how logic is tested.
+- `src/store/index.ts`, `src/core/{parser,rules,insights,categories,defaults}.ts`,
+  `src/ui/{charts.ts,app.js}` — skim the ones your change touches. `test/*.test.ts` — how
+  logic is tested (Vitest).
 
 ## Non-negotiable invariants (violating these is a bug)
 
-1. **All persistence goes through `js/store.js`.** Nothing else touches `localStorage`. New
-   persistent data ⇒ add async methods there, keeping the swap-to-DB seam intact.
-2. **Classic scripts on the global `Koin` namespace.** No ES modules, no bundler, no
-   dependencies, no build step. New file ⇒ add a `<script>` to `index.html` in dependency
-   order (defaults → store → parser → rules → insights → charts → app).
-3. **Pure logic stays pure.** `parser.js`, `rules.js`, `insights.js` have no DOM/storage —
-   keep them that way so they stay testable and portable.
+1. **All persistence goes through `src/store/index.ts`.** Nothing else touches `localStorage`.
+   New persistent data ⇒ add async methods there, keeping the swap-to-DB seam intact.
+2. **ES modules, built with Vite — no global namespace.** Import what you need; don't reach
+   for a global `Koin` (that bridge was removed in Step 3a). TypeScript for new/ported code;
+   keep runtime dependencies minimal. New module ⇒ `import` it where it's used.
+3. **Pure core stays pure.** `src/core/*` (parser, rules, insights, categories, defaults) and
+   the domain types have no DOM/storage — keep them that way so they stay testable/portable.
 4. **Money math is sacred.** Money out is negative; ignore internal transfers; bucket by
    effective date; never trust float equality. Get this right above all else.
 5. **Don't silently lose user data.** Imported rows, manual edits (overrides), and learned
    rules must survive re-imports and reloads. Prefer reversible actions (offer Undo).
 6. **Config is data, not code branches.** Categorize/ignore behavior is driven by editable
-   rules in storage (seeded from `js/defaults.js`), never hardcoded `if merchant === …`.
+   rules in storage (seeded from `src/core/defaults.ts`), never hardcoded `if merchant === …`.
 
 ## 1. Intake & push back (do not skip)
 
@@ -62,7 +63,7 @@ and offer the adjustment. A good outcome is sometimes a reshaped or declined fea
 ## 3. Implement
 
 - Make the focused change. Update `index.html` script order if you add a file.
-- Add seed data to `js/defaults.js` (and mirror `config/*.json`) for new categories/rules.
+- Add seed data to `src/core/defaults.ts` (and mirror `config/*.json`) for new categories/rules.
 
 ## 4. Verify (required before claiming done)
 
@@ -137,6 +138,6 @@ git commit command** with a crafted message, so they can commit in one step:
 
 ## Definition of done
 
-Implemented ✓ · invariants upheld ✓ · `node test/run.js` green ✓ · verified in-browser ✓ ·
+Implemented ✓ · invariants upheld ✓ · `npm test` + `npm run typecheck` green ✓ · verified in-browser ✓ ·
 CHANGELOG updated (ROADMAP/CLAUDE if needed) ✓ · stage-scaled self-review reported ✓ ·
 commit command handed to the user ✓.

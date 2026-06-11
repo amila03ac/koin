@@ -10,8 +10,8 @@ import { describe, expect, test } from "vitest";
 import * as parser from "../src/core/parser";
 import * as rules from "../src/core/rules";
 import * as insights from "../src/core/insights";
+import * as categories from "../src/core/categories";
 import { DEFAULT_CATEGORIES, DEFAULT_RULES } from "../src/core/defaults";
-import "../js/categories.js"; // legacy; registers Koin.categories until Step 3
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
@@ -96,9 +96,8 @@ describe("rules", () => {
   });
 });
 
-describe("categories (legacy js/categories.js)", () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const C = (globalThis as unknown as { Koin: any }).Koin.categories;
+describe("categories", () => {
+  const C = categories;
 
   test("slugify lowercases + hyphenates", () => expect(C.slugify("Pets & Vet!")).toBe("pets-vet"));
   test("slugify collapses runs + trims hyphens", () => expect(C.slugify("  Health   / Pharmacy  ")).toBe("health-pharmacy"));

@@ -13,6 +13,12 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 ## [Unreleased]
 
 ### Changed
+- **Removed the global `Koin` namespace; the app is now a real ES-module graph.** Phase 1
+  Step 3a: `store`, `categories`, and `charts` are typed modules (`src/store/`, `src/core/`,
+  `src/ui/`); `app.js` is now a plain ES module that imports the core/store/charts directly
+  instead of reaching for a global, and the back-compat bridge is gone. A jsdom integration
+  test seeds data and asserts the dashboard renders. Behavior is unchanged. (Typing + the
+  `app.js` → `ui/*` split is Step 3b.)
 - **Ported the pure core to TypeScript.** Phase 1 Step 2: `parser`, `rules`, `insights`, and
   the seed `defaults` are now typed ES modules under `src/core/` (with a shared `types.ts`
   for the transaction model), and the test suite is fully migrated to **Vitest**

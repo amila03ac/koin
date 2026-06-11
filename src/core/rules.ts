@@ -1,6 +1,5 @@
 // rules.ts — ignore patterns, auto-categorization, recurring detection. Pure functions.
 import type { CategoryRule, IgnorePattern, RuleSet, Transaction } from "./types";
-import { registerGlobal } from "./global";
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -72,6 +71,3 @@ function apply(transactions: Transaction[], rules?: Partial<RuleSet> | null): Tr
 }
 
 export { apply, matchesIgnore, autoCategory, detectRecurringMerchants };
-
-// Back-compat: the legacy UI reads `Koin.rules` (Step 3 removes this).
-registerGlobal("rules", { apply, matchesIgnore, autoCategory, detectRecurringMerchants });

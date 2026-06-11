@@ -1,7 +1,6 @@
 // parser.ts — turn a raw bank CSV into normalized transactions. Pure functions; no DOM,
 // no storage. Supports multiple bank layouts via header-sniffing "format profiles".
 import type { ParseResult, Transaction } from "./types";
-import { registerGlobal } from "./global";
 
 const MONTHS: Record<string, number> = {
   jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
@@ -207,9 +206,3 @@ export {
   parse, parseCsv, parsePostedDate, parseMonthNameDate, detectFormat,
   extractEffectiveDate, extractMerchant,
 };
-
-// Back-compat: the legacy UI reads `Koin.parser` (Step 3 removes this).
-registerGlobal("parser", {
-  parse, parseCsv, parsePostedDate, parseMonthNameDate, detectFormat,
-  extractEffectiveDate, extractMerchant,
-});

@@ -1,8 +1,15 @@
 // app.js — wires storage + parser + rules + insights + charts into the UI.
-// Classic script; relies on globals from the other js/ files (load order matters,
-// see index.html). This is the only place that touches the DOM.
+// This is the only place that touches the DOM. (Still plain JS for now; Step 3b types it
+// and splits it into ui/* modules — see docs/ARCHITECTURE.md.)
+import { store } from "../store/index";
+import * as parser from "../core/parser";
+import * as rules from "../core/rules";
+import * as insights from "../core/insights";
+import * as charts from "./charts";
+import * as categories from "../core/categories";
+import { DEFAULT_CATEGORIES, DEFAULT_RULES, PALETTE_VERSION } from "../core/defaults";
+
 (function () {
-  const { store, parser, rules, insights, charts } = Koin;
 
   // ---- app state ----------------------------------------------------------
   const state = {
@@ -47,8 +54,8 @@
         { label: "Reload", fn: () => location.reload() }
       );
     };
-    state.categories = (await store.getCategories()) || Koin.DEFAULT_CATEGORIES;
-    state.rules = (await store.getRules()) || Koin.DEFAULT_RULES;
+    state.categories = (await store.getCategories()) || DEFAULT_CATEGORIES;
+    state.rules = (await store.getRules()) || DEFAULT_RULES;
     if (!(await store.getCategories())) await store.setCategories(state.categories);
     if (!(await store.getRules())) await store.setRules(state.rules);
     state.catMap = Object.fromEntries(state.categories.map((c) => [c.key, c]));
@@ -70,8 +77,8 @@
   // user changed are left untouched. No transactions/rules/overrides are affected.
   async function migratePalette() {
     const meta = await store.getMeta();
-    if ((meta.paletteVersion || 1) >= (Koin.PALETTE_VERSION || 1)) return;
-    const def = Object.fromEntries(Koin.DEFAULT_CATEGORIES.map((c) => [c.key, c.color]));
+    if ((meta.paletteVersion || 1) >= (PALETTE_VERSION || 1)) return;
+    const def = Object.fromEntries(DEFAULT_CATEGORIES.map((c) => [c.key, c.color]));
     let changed = false;
     for (const c of state.categories) {
       if (def[c.key] && c.color !== def[c.key]) { c.color = def[c.key]; changed = true; }
@@ -80,7 +87,7 @@
       await store.setCategories(state.categories);
       state.catMap = Object.fromEntries(state.categories.map((c) => [c.key, c]));
     }
-    meta.paletteVersion = Koin.PALETTE_VERSION;
+    meta.paletteVersion = PALETTE_VERSION;
     await store.setMeta(meta);
   }
 
@@ -738,7 +745,7 @@
   // One editable row: colour swatch, emoji icon, display name, and the fixed key.
   function categoryRow(cat, container) {
     // <input type=color> requires #rrggbb; fall back for shorthand/invalid stored colours.
-    const colorVal = Koin.categories.isHexColor(cat.color) && cat.color.length === 7 ? cat.color : "#888888";
+    const colorVal = categories.isHexColor(cat.color) && cat.color.length === 7 ? cat.color : "#888888";
     const color = h("input", { type: "color", class: "cat-color", value: colorVal, title: "Pick a colour" });
     color.addEventListener("input", async () => { cat.color = color.value; await persistCategories(); });
 
@@ -753,7 +760,7 @@
       // While a category is still unused, keep its internal key in step with the name so
       // backups/JSON stay readable. Once it's referenced anywhere, the key freezes.
       if (!categoryUsed(cat.key)) {
-        cat.key = Koin.categories.uniqueKey(v, state.categories.filter((c) => c !== cat).map((c) => c.key));
+        cat.key = categories.uniqueKey(v, state.categories.filter((c) => c !== cat).map((c) => c.key));
         renderCategoryList(container); // refresh the shown key
       }
       await persistCategories();
@@ -769,7 +776,7 @@
   // generic name you rename inline; the name field is focused for a quick edit.
   async function addCategory(container) {
     const cat = {
-      key: Koin.categories.uniqueKey("New category", state.categories.map((c) => c.key)),
+      key: categories.uniqueKey("New category", state.categories.map((c) => c.key)),
       label: "New category",
       color: "#8a8f98",
       icon: "🏷️",

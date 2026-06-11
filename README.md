@@ -26,7 +26,7 @@ Your data is saved in **that browser's** storage (localStorage) and persists acr
 It's per-browser for now; cross-device sync is the next milestone (see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)). **⋯ → Export backup** / **Restore backup**
 moves data between browsers or machines. All persistence lives behind one storage adapter in
-`js/store.js` — the seam for IndexedDB and a cloud backend later.
+`src/store/index.ts` — the seam for IndexedDB and a cloud backend later.
 
 > **Upgrading from the old `node server.js` mode?** That file-backed helper is superseded by
 > the Vite dev server; data previously kept in `~/.koin/koin-data.json` won't appear
@@ -58,7 +58,7 @@ moves data between browsers or machines. All persistence lives behind one storag
 
 Vanilla JS bundled with **Vite**, with **TypeScript** being adopted module-by-module (the
 pure `parser`/`rules`/`insights` logic ports first). All persistence goes through one
-swappable storage adapter (`js/store.js`, localStorage today) so IndexedDB and a cloud
+swappable storage adapter (`src/store/index.ts`, localStorage today) so IndexedDB and a cloud
 backend can be slotted in later without touching the UI. See [CLAUDE.md](CLAUDE.md) for the
 current architecture and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the evolution plan.
 
