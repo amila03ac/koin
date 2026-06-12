@@ -82,10 +82,9 @@ land (see "Tracking progress" above).
       `app.js` a real ES module importing the core/store/charts directly; **remove the global
       `Koin` bridge** (`src/core/global.ts` deleted, no more `registerGlobal`). A jsdom
       integration test now seeds data and asserts the dashboard renders. No behavior change.
-- [ ] **3b. Type + split `app.js`.** Rename `src/ui/app.js` → `.ts`, add types, and break the
-      ~860-line file into `ui/*` modules. Best done with the live preview/Chrome tooling so
-      each extraction gets a real click-through. (`app.js` is a plain ES module, untyped —
-      `checkJs` off.)
+- [x] **3b. Type + split `app.js`.** Done — the ~860-line file is broken into focused, typed
+      `ui/*` modules (dom, toast, modal, backup, state, render-sections, render-bus, table,
+      rules-editor) and `app.ts` is a ~150-line composition shell. Slices below.
   - [x] _Slice 1_ — extracted the low-coupling helpers: `src/ui/dom.ts` (`h`/`$`/`money`/
         `fmtDate`/`todayIso`) and `src/ui/toast.ts`, both typed + unit-tested (`test/ui.test.ts`).
   - [x] _Slice 2_ — extracted the remaining UI primitives: `src/ui/modal.ts` (`openModal`)
@@ -101,9 +100,14 @@ land (see "Tracking progress" above).
         `src/ui/render-bus.ts` indirection (app registers `renderAll`; the table calls
         `rerender()`) so the dependency stays one-way (`app → table`, no cycle). A boot
         interaction test exercises table → bus → render. (`app.js` ~377 lines.)
-  - [ ] _Remaining_ — the rules/category editor (`openRulesModal` + learned-rule list +
-        category manager). Then type `app.js`/`table.js` (→ `.ts`). Do under live
-        verification.
+  - [x] _Slice 3d_ — extracted the rules/category editor (`openRulesModal` + learned-rule
+        list + category manager + re-apply-to-history) into `src/ui/rules-editor.js`. Moved
+        the shared `field()` helper into `dom.ts` (it was used by both the txn modal and the
+        rules modal — a latent bug from slice 3c). Added a boot test that opens the Rules
+        modal. `app.js` is now a ~159-line bootstrap/render shell.
+  - [x] _Slice 3e_ — typed the three remaining UI modules → `app.ts`, `table.ts`,
+        `rules-editor.ts` under strict mode (DOM/element casts; `SaveRejection` added to the
+        store). The whole `src/ui/` layer is now TypeScript. **Step 3 complete.**
 - [ ] **4. Make IndexedDB (Dexie) the storage backend.** No migration — users re-import CSVs.
       Keep "Export backup" working as the durable escape hatch.
 - [ ] **5. PWA** via `vite-plugin-pwa` — installable, offline.

@@ -18,6 +18,13 @@ export interface Meta {
   [key: string]: unknown;
 }
 
+// Sent to onSaveRejected when the file backend's shrink-guard refuses a save (HTTP 409).
+export interface SaveRejection {
+  current: number;
+  incoming: number;
+  [key: string]: unknown;
+}
+
 export interface Backup {
   schemaVersion?: number;
   exportedAt?: string;
@@ -45,7 +52,7 @@ const SAVE_DEBOUNCE_MS = 250;
 class KoinStore {
   mode: "local" | "file" = "local"; // until init() upgrades us to "file"
   cache: Record<string, unknown> = {}; // in-memory copy of the file blob (file mode only)
-  onSaveRejected: ((info: unknown) => void) | null = null; // app surfaces shrink-guard rejection
+  onSaveRejected: ((info: SaveRejection) => void) | null = null; // app surfaces shrink-guard rejection
   private _saveTimer: ReturnType<typeof setTimeout> | null = null;
   private _dirty = false; // true once this tab has unsaved edits (file mode)
 

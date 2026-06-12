@@ -2,4 +2,4 @@
 // core (parser/rules/insights/defaults/categories), the storage adapter (store), and the
 // charts directly — no more global `Koin` namespace. (Step 3b types + splits ui/app.js.)
 import "../css/style.css";
-import "./ui/app.js";
+import "./ui/app";

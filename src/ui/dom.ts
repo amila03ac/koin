@@ -32,3 +32,8 @@ export const fmtDate = (iso: string): string =>
   new Date(iso + "T00:00:00Z").toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
 
 export const todayIso = (): string => new Date().toISOString().slice(0, 10);
+
+// A labelled form field: <label class="field"><span>{label}</span>{input}</label>.
+export function field(label: string, input: Node): HTMLElement {
+  return h("label", { class: "field" }, [h("span", {}, label), input]);
+}

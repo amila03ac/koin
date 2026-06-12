@@ -95,16 +95,16 @@ Koin/
       index.ts          Storage adapter (the ONLY persistence seam): localStorage backend
     ui/                 DOM layer
       state.ts          Shared mutable app state + compose() (rules+overrides → effective)
-      dom.ts            Tiny DOM helpers: h() element builder, $, money, fmtDate, todayIso
+      dom.ts            Tiny DOM helpers: h() element builder, $, money, fmtDate, todayIso, field
       toast.ts          Transient notification (with optional action button)
       modal.ts          Overlay modal primitive (openModal)
       backup.ts         Export / restore / reset all data
       charts.ts         Dependency-free inline-SVG donut + bar charts
       render-sections.ts  Leaf panel renderers: summary, charts, insights, period jump, filter
       render-bus.ts     setRenderer/rerender indirection (lets modules re-render w/o importing app)
-      table.js          Transaction table + row actions + add/edit modal (plain ES module)
-      app.js            Bootstrap + renderAll + rules/category editor (plain ES module;
-                        remaining editor split + typing is Step 3b)
+      table.ts          Transaction table + row actions + add/edit modal
+      rules-editor.ts   Rules/category editor modal (learned rules, category manager)
+      app.ts            Bootstrap + renderAll + toolbar wiring (composition root)
   config/
     categories.default.json   Human-readable mirror of the seed categories
     rules.default.json        Human-readable mirror of the seed ignore + category rules
@@ -116,19 +116,20 @@ Koin/
     boot.test.ts        jsdom boot + integration tests (renders empty + seeded dashboard)
 ```
 
-**Module state (mid-migration — see `docs/ARCHITECTURE.md`).** The app is a Vite-built ES
-module graph with **no global namespace**. The **pure core** (`src/core/*.ts`) and the
-**storage adapter** (`src/store/index.ts`) are typed; the **DOM layer** is `src/ui/`
-(`charts.ts` typed; `app.js` is a plain ES module that imports the core/store/charts
-directly — still untyped, typed + split into `ui/*` in Step 3b). The seed config lives in
-`src/core/defaults.ts` (the `config/*.json` files are a readable mirror; if you change them,
-mirror it there too, or just edit in-app — authoritative once saved).
+**Module layout (see `docs/ARCHITECTURE.md`).** The app is a Vite-built, fully-typed ES
+module graph with **no global namespace**: the **pure core** (`src/core/*.ts`), the **storage
+adapter** (`src/store/index.ts`), and the **DOM layer** (`src/ui/*.ts`) are all TypeScript.
+`app.ts` is the composition root that owns `renderAll`; feature modules (`table.ts`,
+`rules-editor.ts`) trigger re-renders via `render-bus.ts` (`rerender()`) rather than importing
+`app` (keeps the dependency one-way, no cycle). The seed config lives in `src/core/defaults.ts`
+(the `config/*.json` files are a readable mirror; if you change them, mirror it there too, or
+just edit in-app — authoritative once saved).
 
 ### Data flow
 
 `CSV file` → `parser.parse()` → normalized transactions → `rules.apply()` (ignore +
 category + recurring) → merged into the store (dedup by `id`) → `insights.*` aggregate
-for the active period → `app.js` renders cards, charts, and the table.
+for the active period → `app.ts` + `ui/*` render cards, charts, and the table.
 
 Manual edits (category overrides, ignore toggles, deletions, **field edits** to bank
 rows, custom transactions) are stored **separately from imported rows** so that
@@ -187,18 +188,17 @@ freshly parsed data, keyed by the stable `id`.
 
 ## Conventions
 
-- Vanilla JS bundled with Vite, no UI framework. TypeScript for new/ported code; the pure
-  core (`src/core/*.ts`) and storage are typed; the `src/ui/` layer is next (`app.js` typed +
-  split in Step 3b). Avoid adding
-  runtime dependencies without a strong reason — keep it lean and offline-capable (PWA later).
-- `store.js` is the only module allowed to read/write persistent storage.
+- Vanilla TypeScript bundled with Vite, no UI framework — `src/core`, `src/store`, and
+  `src/ui` are all typed. Avoid adding runtime dependencies without a strong reason — keep it
+  lean and offline-capable (PWA later).
+- `src/store/index.ts` is the only module allowed to read/write persistent storage.
 - Pure functions in `src/core/` (parser, rules, insights — no DOM, no storage) so they stay
   easy to test and reuse if this becomes a web/mobile app. Tested with Vitest (`npm test`);
   the jsdom `boot` test guards startup.
 - Money is handled in cents-safe ways where it matters; never trust float equality.
 - `src/core/defaults.ts` holds the first-run seed for categories + rules. The live,
   user-edited copy lives in storage and is authoritative once saved. Bump `Koin.PALETTE_VERSION` when
-  changing the default category colors; `migratePalette()` in `app.js` then refreshes
+  changing the default category colors; `migratePalette()` in `app.ts` then refreshes
   stored colors for known keys on next load (preserving custom categories/labels/icons).
 - A category's `key` is its **stable id** — transactions, rules, and overrides all
   reference it. **Never rename a key** (you'd orphan that data). The in-app Categories

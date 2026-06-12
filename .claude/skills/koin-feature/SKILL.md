@@ -18,7 +18,8 @@ duplicate them, it points at them:
 - `ROADMAP.md` — direction + the **project stages** (we're at Stage 0: local POC).
 - `CHANGELOG.md` — what already shipped (recent entries show the working style).
 - `src/store/index.ts`, `src/core/{parser,rules,insights,categories,defaults}.ts`,
-  `src/ui/{charts.ts,app.js}` — skim the ones your change touches. `test/*.test.ts` — how
+  `src/ui/*.ts` (app, table, rules-editor, render-sections, dom, modal, toast, charts, …) —
+  skim the ones your change touches. `test/*.test.ts` — how
   logic is tested (Vitest).
 
 ## Non-negotiable invariants (violating these is a bug)
