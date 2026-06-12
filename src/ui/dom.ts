@@ -5,14 +5,15 @@ type Child = string | Node | null | undefined;
 type AttrValue = string | number | boolean | ((e: Event) => void) | null | undefined;
 type Attrs = Record<string, AttrValue>;
 
-// Build an element. Special attrs: `class` -> className, `html` -> innerHTML, `on*` ->
-// addEventListener. Other non-null attrs become setAttribute. `children` is a string, a
-// Node, or a (possibly nested) array of those; null/undefined children are skipped.
+// Build an element. Special attrs: `class` -> className, `on*` -> addEventListener. Other
+// non-null attrs become setAttribute. `children` is a string, a Node, or a (possibly nested)
+// array of those; null/undefined children are skipped. There is intentionally NO `html`/
+// innerHTML escape hatch — pass text as children (auto-escaped via textNode) so a future
+// `h("div", { html: merchantName })` can't introduce XSS.
 export function h(tag: string, attrs?: Attrs, children?: Child | Child[]): HTMLElement {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs || {})) {
     if (k === "class") e.className = v as string;
-    else if (k === "html") e.innerHTML = v as string;
     else if (k.startsWith("on") && typeof v === "function") e.addEventListener(k.slice(2), v as EventListener);
     else if (v != null) e.setAttribute(k, String(v));
   }

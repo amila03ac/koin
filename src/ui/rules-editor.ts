@@ -33,7 +33,7 @@ export function openRulesModal(): void {
   const advanced = h("details", { class: "advanced" }, [
     h("summary", {}, "Advanced — edit raw rules (JSON)"),
     h("div", { class: "form" }, [
-      h("p", { class: "small muted" }, "Ignore patterns flag internal transfers so they don't count as spending. Category rules auto-assign categories (first match wins). Matching is case-insensitive; set \"isRegex\": true for a regular expression. (Learned rules and categories are managed in the lists above.)"),
+      h("p", { class: "small muted" }, "Ignore patterns flag internal transfers so they don't count as spending. Category rules auto-assign categories (first match wins). Matching is case-insensitive; set \"isRegex\": true for a regular expression — keep these simple (avoid nested quantifiers like (a+)+, which can hang the page). (Learned rules and categories are managed in the lists above.)"),
       field("Ignore patterns + hand-written category rules", ta),
       h("p", { class: "small muted" }, "“Save” applies edited rules to all auto-categorized transactions immediately. “Save & apply to history” goes further: it also re-runs the rules over transactions you'd categorised by hand, clearing those one-off edits so the rules win."),
     ]),

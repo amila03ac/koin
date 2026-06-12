@@ -21,12 +21,15 @@ describe("h()", () => {
     expect(el.getAttribute("data-x")).toBe("1");
     expect(el.textContent).toBe("hello");
   });
-  test("`html` sets innerHTML; null children are skipped; nodes append in order", () => {
-    const el = h("p", { html: "<b>x</b>" });
-    expect(el.querySelector("b")).toBeTruthy();
+  test("null children are skipped; nodes append in order", () => {
     const wrap = h("div", {}, [h("span", {}, "a"), null, h("span", {}, "b")]);
     expect(wrap.querySelectorAll("span").length).toBe(2);
     expect(wrap.textContent).toBe("ab");
+  });
+  test("text children are escaped (no html injection)", () => {
+    const el = h("div", {}, "<b>x</b>");
+    expect(el.querySelector("b")).toBeNull();
+    expect(el.textContent).toBe("<b>x</b>");
   });
   test("on* attrs attach event listeners", () => {
     let clicks = 0;

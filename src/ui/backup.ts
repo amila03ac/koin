@@ -1,5 +1,6 @@
 // backup.ts — export / restore / reset of all Koin data. Extracted from app.js in Step 3b.
 // These go through the storage adapter only; restore/reset reload the page afterwards.
+import type { Backup } from "../store/index";
 import { store } from "../store/index";
 import { h, todayIso } from "./dom";
 import { toast } from "./toast";
@@ -13,12 +14,16 @@ export async function exportBackup(): Promise<void> {
 }
 
 export function importBackup(text: string): void {
+  let dump: unknown;
   try {
-    const dump = JSON.parse(text);
-    store.importAll(dump).then(() => { toast("Backup restored. Reloading…"); setTimeout(() => location.reload(), 600); });
+    dump = JSON.parse(text);
   } catch {
-    toast("Invalid backup file.");
+    toast("Invalid backup file — not valid JSON.");
+    return;
   }
+  store.importAll(dump as Backup)
+    .then(() => { toast("Backup restored. Reloading…"); setTimeout(() => location.reload(), 600); })
+    .catch((err) => toast((err as Error).message || "Invalid backup file."));
 }
 
 export async function resetAll(): Promise<void> {

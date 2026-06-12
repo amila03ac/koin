@@ -27,6 +27,13 @@ async function init(): Promise<void> {
       { label: "Reload", fn: () => location.reload() },
     );
   };
+  // A failed write (e.g. browser storage full) would otherwise be lost silently.
+  store.onWriteError = () => {
+    toast(
+      "Couldn't save — your browser's storage may be full. Export a backup to be safe.",
+      { label: "Export backup", fn: exportBackup },
+    );
+  };
   state.categories = (await store.getCategories()) || DEFAULT_CATEGORIES;
   state.rules = (await store.getRules()) || DEFAULT_RULES;
   if (!(await store.getCategories())) await store.setCategories(state.categories);

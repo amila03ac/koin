@@ -53,6 +53,7 @@ class KoinStore {
   mode: "local" | "file" = "local"; // until init() upgrades us to "file"
   cache: Record<string, unknown> = {}; // in-memory copy of the file blob (file mode only)
   onSaveRejected: ((info: SaveRejection) => void) | null = null; // app surfaces shrink-guard rejection
+  onWriteError: ((err: unknown) => void) | null = null; // app surfaces a failed write (e.g. quota)
   private _saveTimer: ReturnType<typeof setTimeout> | null = null;
   private _dirty = false; // true once this tab has unsaved edits (file mode)
 
@@ -96,8 +97,11 @@ class KoinStore {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (err) {
+      // Surface failures (e.g. QuotaExceededError) instead of failing silently. The
+      // in-memory state is already updated; we notify so the app can warn the user to back
+      // up, rather than throwing into a bare `await store.setXxx()` (an unhandled rejection).
       console.error("Koin store: failed to write", key, err);
-      throw err;
+      if (this.onWriteError) this.onWriteError(err);
     }
   }
 
@@ -178,6 +182,18 @@ class KoinStore {
 
   async importAll(dump: Backup): Promise<void> {
     if (!dump || typeof dump !== "object") throw new Error("Invalid backup file");
+    // Shape-check before writing anything, so a corrupt/hand-edited/shared backup can't
+    // poison the store and crash compose() with NaN or a bad type. (Backups travel between
+    // people once Koin is open-source.)
+    const isArray = Array.isArray;
+    const isObject = (x: unknown) => typeof x === "object" && x !== null && !isArray(x);
+    if (dump.transactions !== undefined && !isArray(dump.transactions)) throw new Error("Invalid backup: 'transactions' must be a list");
+    if (dump.manual !== undefined && !isArray(dump.manual)) throw new Error("Invalid backup: 'manual' must be a list");
+    if (dump.overrides !== undefined && !isObject(dump.overrides)) throw new Error("Invalid backup: 'overrides' must be an object");
+    if (dump.categories != null && !isArray(dump.categories)) throw new Error("Invalid backup: 'categories' must be a list");
+    if (dump.rules != null && !isObject(dump.rules)) throw new Error("Invalid backup: 'rules' must be an object");
+    if (dump.schemaVersion !== undefined && typeof dump.schemaVersion !== "number") throw new Error("Invalid backup: bad 'schemaVersion'");
+
     if (dump.transactions) await this.setTransactions(dump.transactions);
     if (dump.manual)       await this.setManual(dump.manual);
     if (dump.overrides)    await this.setOverrides(dump.overrides);

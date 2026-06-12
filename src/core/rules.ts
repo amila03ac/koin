@@ -5,13 +5,25 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// Compile each distinct pattern once and reuse it. apply() runs on every compose() (i.e.
+// every UI mutation), against every transaction, so without this the same RegExp would be
+// reconstructed thousands of times per rerender. Keyed by source + isRegex; invalid patterns
+// cache as null so we also warn only once. (Compilation is deterministic, so caching is safe.)
+const reCache = new Map<string, RegExp | null>();
+
 function toRegex(rule: { match: string; isRegex?: boolean }): RegExp | null {
+  const key = (rule.isRegex ? "r:" : "s:") + rule.match;
+  const cached = reCache.get(key);
+  if (cached !== undefined) return cached;
+  let re: RegExp | null;
   try {
-    return new RegExp(rule.isRegex ? rule.match : escapeRegex(rule.match), "i");
+    re = new RegExp(rule.isRegex ? rule.match : escapeRegex(rule.match), "i");
   } catch (err) {
     console.warn("Koin rules: invalid pattern", rule, err);
-    return null;
+    re = null;
   }
+  reCache.set(key, re);
+  return re;
 }
 
 function matchesIgnore(description: string, ignorePatterns: IgnorePattern[]): boolean {

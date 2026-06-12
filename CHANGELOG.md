@@ -12,7 +12,31 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 
 ## [Unreleased]
 
+### Added
+- **Backup restore now validates the file's structure** before importing, so a corrupt or
+  hand-edited backup (e.g. `transactions` that isn't a list) is rejected with a clear message
+  instead of silently poisoning your data. Matters now that backups can travel between people.
+- **Continuous integration** (GitHub Actions): typecheck + tests + build run on every push/PR.
+
 ### Changed
+- **The whole UI is now TypeScript.** Phase 1 Step 3b: `app.js` (≈870 lines) was split into
+  focused, typed `src/ui/*` modules — `app` (composition root), `state`, `render-sections`,
+  `render-bus`, `table`, `rules-editor`, plus `dom`/`modal`/`toast`/`backup`/`charts`. No
+  global namespace; feature modules re-render via a small `render-bus` indirection. Behavior
+  unchanged.
+- Compiled rule regexes are now cached (compile-once), since `rules.apply()` runs on every
+  edit against every transaction.
+
+### Fixed
+- **A failed save no longer disappears silently.** If the browser's storage is full
+  (`QuotaExceededError`), Koin now shows a toast prompting you to export a backup, instead of
+  logging to the console while the UI pretends the write succeeded.
+
+### Security
+- Removed the `html`/`innerHTML` escape hatch from the `h()` DOM helper (it had no callers) so
+  a future change can't accidentally introduce XSS; all text goes through escaped text nodes.
+
+### Changed (earlier Phase 1 migration steps)
 - **Removed the global `Koin` namespace; the app is now a real ES-module graph.** Phase 1
   Step 3a: `store`, `categories`, and `charts` are typed modules (`src/store/`, `src/core/`,
   `src/ui/`); `app.js` is now a plain ES module that imports the core/store/charts directly
