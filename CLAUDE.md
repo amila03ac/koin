@@ -61,26 +61,25 @@ module-by-module (the pure core first — see `docs/ARCHITECTURE.md`). The key d
 > move to IndexedDB or a cloud backend later, you reimplement that one module — the UI is
 > unchanged.
 
-Run with `npm run dev` (→ http://localhost:4178); the backend is **localStorage**
-(per-browser), auto-selected in `store.init()`. Data persists per browser; cross-device sync
-is a later phase (`docs/ARCHITECTURE.md`). _(The old `node server.cjs` shared-file backend at
-`~/.koin/koin-data.json` is superseded by the Vite dev server and slated for removal in Phase
-1 Step 4; the notes below describe it while it still exists.)_
+Run with `npm run dev` (→ http://localhost:4178); the backend is **IndexedDB**
+(per-browser), auto-selected in `store.init()`, with **localStorage as an automatic fallback**
+when IndexedDB is unavailable (old browsers, some private modes, non-browser test envs). On
+the first run that upgrades a localStorage user to IndexedDB, `store.init()` copies their
+existing data across once (a straight blob copy, not a schema migration), so nothing is lost.
+Data persists per browser; cross-device sync is a later phase (`docs/ARCHITECTURE.md`).
 
-> **`~/.koin/koin-data.json` is the user's LIVE data — never let tooling overwrite it.**
-> `server.js` honors `KOIN_DATA_DIR` to relocate the data file; `.claude/settings.json` sets
-> it to a sandbox for Claude-launched servers and a PreToolUse hook blocks shell writes to
-> `~/.koin`. When testing the server yourself, set `KOIN_DATA_DIR=/tmp/...`. A **shrink-guard**
-> in `server.js` (409 on a non-empty dataset dropping below half, unless `?force=1`) plus a
-> dirty-only tab-close beacon stop a stale tab from clobbering newer data; restore/reset
-> force-write past it. Still, **Export backup** is the only fully durable copy.
+> **`~/.koin/koin-data.json` may still hold the user's real data from the retired file
+> helper — never let tooling overwrite it.** The `node server.cjs` shared-file backend was
+> removed in Step 4 (Vite serves the app now), but the user's exported data file can remain on
+> disk, so the protective `.claude` safeguards stay: `.claude/settings.json` deny-rules + the
+> PreToolUse hook (`.claude/hooks/guard-koin-data.sh`) still block tooling from writing
+> `~/.koin`. **Export backup** is the only fully durable copy.
 
 ```
 Koin/
   index.html            Dashboard shell; loads src/main.ts (Vite entry)
   vite.config.ts        Vite + Vitest config
   tsconfig.json         TypeScript config
-  server.cjs            Legacy local helper (superseded by Vite; retired in Step 4)
   css/style.css         All styling
   src/
     main.ts             Vite entry: imports css + ui/app
@@ -92,7 +91,8 @@ Koin/
       insights.ts       Pure aggregation: period filtering, category/merchant rollups
       categories.ts     Pure category helpers: slugification, uniqueness, colour validation
     store/
-      index.ts          Storage adapter (the ONLY persistence seam): localStorage backend
+      index.ts          Storage adapter (the ONLY persistence seam): IndexedDB + localStorage fallback
+      idb.ts            Tiny native-IndexedDB KV wrapper (no deps); used only by index.ts
     ui/                 DOM layer
       state.ts          Shared mutable app state + compose() (rules+overrides → effective)
       dom.ts            Tiny DOM helpers: h() element builder, $, money, fmtDate, todayIso, field

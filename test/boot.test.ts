@@ -4,8 +4,9 @@
 // (src/ui/app.js, which now imports the typed core + store directly — no global Koin),
 // fires DOMContentLoaded, and asserts the app boots without throwing. The second test
 // seeds the store and verifies the dashboard actually renders — a regression net for the
-// de-globalization (Step 3) and the upcoming ui/* split (Step 3b). Runs in jsdom; with no
-// /api/data helper, store falls back to localStorage (the real static-host behavior).
+// de-globalization (Step 3) and the ui/* split (Step 3b). Runs in jsdom, which has no
+// IndexedDB, so store.init() falls back to localStorage here (the IndexedDB path is covered
+// separately in test/idb.test.ts via fake-indexeddb).
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";

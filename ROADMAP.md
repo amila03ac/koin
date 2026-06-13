@@ -62,8 +62,9 @@ transition. Highlights folded in below.
 ## Later
 
 - **Phase 1 — real codebase (local-first).** Vite + TypeScript, split `app.js` into modules,
-  IndexedDB backend (re-import, no migration), installable PWA, GitHub Pages deploy, CI +
-  MIT license + contributor docs. Retires `server.js`/`~/.koin`. See docs/ARCHITECTURE.md.
+  IndexedDB backend (localStorage data auto-copied over; old `~/.koin` users re-import),
+  installable PWA, GitHub Pages deploy, CI + MIT license + contributor docs. Retired
+  `server.cjs`/`~/.koin` file backend in Step 4. See docs/ARCHITECTURE.md.
 - **Phase 2 — cloud sync.** Supabase (Postgres + Auth + row-level security) behind the same
   storage seam; IndexedDB becomes the offline cache. Cross-device sync, optional accounts.
 - **Search & reports.** Full-text search, custom date ranges, exportable reports (PDF/CSV).

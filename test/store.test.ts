@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 //
 // Tests for the storage adapter's data-safety behaviors added per the 2026-06-12 review:
-// backup shape validation (importAll) and surfacing write failures (onWriteError). Runs in
-// jsdom so localStorage exists; the store defaults to the "local" backend.
+// backup shape validation (importAll) and surfacing write failures (onWriteError). These
+// never call store.init(), so the store stays on its default localStorage backend — which is
+// also the real fallback path when IndexedDB is unavailable. (The IndexedDB backend itself is
+// covered in test/idb.test.ts.)
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { store } from "../src/store/index";
 import type { Backup } from "../src/store/index";

@@ -1,13 +1,19 @@
 // store/index.ts — the ONLY module that talks to persistent storage.
 //
 // Two backends behind ONE interface (the seam designed for a future DB):
-//   • "file"  — when Koin is served by the legacy helper, data lives in ONE JSON file at
-//               ~/.koin/koin-data.json via GET/PUT /api/data. (Superseded by Vite; the file
-//               backend is unreachable under the dev server and is retired in Step 4.)
-//   • "local" — browser localStorage (per-browser). The default under Vite.
-// `await store.init()` picks the backend at startup. Method names/return shapes are the same
-// for both, so the rest of Koin never knows or cares which is active.
+//   • "idb"   — browser IndexedDB (the default). Far larger quota than localStorage, async,
+//               and the right home for years of imported statements. See ./idb.ts.
+//   • "local" — browser localStorage. Automatic fallback when IndexedDB is unavailable
+//               (very old browsers, some private-browsing modes, or a non-browser test env).
+// `await store.init()` picks the backend at startup, preferring IndexedDB; on first run it
+// also copies any existing localStorage data into IndexedDB once, so upgrading users keep
+// their dashboard without re-importing. Method names/return shapes are identical for both
+// backends, so the rest of Koin never knows or cares which is active.
+//
+// (Pre-Step-4 a third "file" backend talked to a local Node helper at ~/.koin/koin-data.json;
+// that helper — server.cjs — is retired now that Vite serves the app.)
 import type { Category, Override, RuleSet, Transaction } from "../core/types";
+import { idbAvailable, idbGet, idbSet, idbClear } from "./idb";
 
 export type OverrideMap = Record<string, Override>;
 
@@ -15,13 +21,6 @@ export interface Meta {
   schemaVersion: number;
   imports: unknown[];
   paletteVersion?: number;
-  [key: string]: unknown;
-}
-
-// Sent to onSaveRejected when the file backend's shrink-guard refuses a save (HTTP 409).
-export interface SaveRejection {
-  current: number;
-  incoming: number;
   [key: string]: unknown;
 }
 
@@ -47,38 +46,55 @@ const KEYS = {
   meta:         PREFIX + "meta",
 };
 export const SCHEMA_VERSION = 1;
-const SAVE_DEBOUNCE_MS = 250;
 
 class KoinStore {
-  mode: "local" | "file" = "local"; // until init() upgrades us to "file"
-  cache: Record<string, unknown> = {}; // in-memory copy of the file blob (file mode only)
-  onSaveRejected: ((info: SaveRejection) => void) | null = null; // app surfaces shrink-guard rejection
+  mode: "idb" | "local" = "local"; // until init() prefers IndexedDB
   onWriteError: ((err: unknown) => void) | null = null; // app surfaces a failed write (e.g. quota)
-  private _saveTimer: ReturnType<typeof setTimeout> | null = null;
-  private _dirty = false; // true once this tab has unsaved edits (file mode)
 
-  // Detect the local helper. If GET /api/data works, use the shared file backend.
+  // Prefer IndexedDB; fall back to localStorage if it's unavailable. On the first run that
+  // upgrades a localStorage user to IndexedDB, copy their existing data across once.
   async init(): Promise<void> {
-    try {
-      const res = await fetch("/api/data", { method: "GET", cache: "no-store" });
-      if (res.ok) {
-        this.cache = (await res.json()) || {};
-        this.mode = "file";
-        window.addEventListener("pagehide", () => this._flushBeacon());
-        console.info("Koin store: file backend (~/.koin/koin-data.json, shared across browsers)");
+    if (idbAvailable()) {
+      try {
+        await idbGet(KEYS.meta); // forces the DB open; throws if blocked/unavailable
+        this.mode = "idb";
+        await this._seedFromLocalStorage();
+        console.info("Koin store: IndexedDB backend (koin/kv).");
         return;
+      } catch (err) {
+        console.warn("Koin store: IndexedDB unavailable, using localStorage", err);
       }
-    } catch { /* helper not running — fall through to localStorage */ }
+    }
     this.mode = "local";
     console.info("Koin store: localStorage backend (per-browser).");
   }
 
+  // One-time, best-effort upgrade: if IndexedDB has no value for a key but localStorage does,
+  // copy it over. A straight blob copy (identical shapes) — not a schema migration — so an
+  // existing user keeps their dashboard on upgrade instead of re-importing. Never clobbers
+  // data already in IndexedDB.
+  private async _seedFromLocalStorage(): Promise<void> {
+    if (typeof localStorage === "undefined") return;
+    for (const key of Object.values(KEYS)) {
+      let raw: string | null = null;
+      try { raw = localStorage.getItem(key); } catch { return; } // ls blocked — nothing to seed
+      if (raw == null) continue;
+      try {
+        if ((await idbGet(key)) !== undefined) continue; // don't overwrite IndexedDB data
+        await idbSet(key, JSON.parse(raw));
+      } catch (err) {
+        console.warn("Koin store: seed skipped for", key, err);
+      }
+    }
+  }
+
   // --- low-level read/write (mode-aware) -----------------------------------
   async _read<T>(key: string, fallback: T): Promise<T> {
-    if (this.mode === "file") {
-      return Object.prototype.hasOwnProperty.call(this.cache, key) ? (this.cache[key] as T) : fallback;
-    }
     try {
+      if (this.mode === "idb") {
+        const v = await idbGet<T>(key);
+        return v === undefined ? fallback : v;
+      }
       const raw = localStorage.getItem(key);
       return raw == null ? fallback : (JSON.parse(raw) as T);
     } catch (err) {
@@ -88,63 +104,17 @@ class KoinStore {
   }
 
   async _write(key: string, value: unknown): Promise<void> {
-    if (this.mode === "file") {
-      this.cache[key] = value;
-      this._dirty = true;
-      this._scheduleSave();
-      return;
-    }
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      if (this.mode === "idb") await idbSet(key, value);
+      else localStorage.setItem(key, JSON.stringify(value));
     } catch (err) {
-      // Surface failures (e.g. QuotaExceededError) instead of failing silently. The
-      // in-memory state is already updated; we notify so the app can warn the user to back
-      // up, rather than throwing into a bare `await store.setXxx()` (an unhandled rejection).
+      // Surface failures (e.g. QuotaExceededError, or a rejected IDB transaction) instead of
+      // failing silently. The in-memory state is already updated; we notify so the app can
+      // warn the user to back up, rather than throwing into a bare `await store.setXxx()`
+      // (which would become an unhandled rejection).
       console.error("Koin store: failed to write", key, err);
       if (this.onWriteError) this.onWriteError(err);
     }
-  }
-
-  // --- file-mode persistence -----------------------------------------------
-  private _scheduleSave(): void {
-    if (this._saveTimer) clearTimeout(this._saveTimer);
-    this._saveTimer = setTimeout(() => this._flush(), SAVE_DEBOUNCE_MS);
-  }
-
-  // force=true bypasses the server's shrink-guard (for intentional bulk ops: restore/reset).
-  async _flush(force?: boolean): Promise<void> {
-    if (this._saveTimer) clearTimeout(this._saveTimer);
-    if (this.mode !== "file") return;
-    const body = JSON.stringify(this.cache);
-    try {
-      const res = await fetch("/api/data" + (force ? "?force=1" : ""), {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body,
-      });
-      if (res.status === 409) {
-        // Shrink-guard refused the save — newer/larger data is on disk. Keep _dirty so a
-        // later forced save can still go through, and let the app warn the user.
-        const info = await res.json().catch(() => ({}));
-        console.warn("Koin store: save rejected by shrink-guard", info);
-        if (typeof this.onSaveRejected === "function") this.onSaveRejected(info);
-        return;
-      }
-      if (!res.ok) { console.error("Koin store: save failed", res.status); return; }
-      this._dirty = false;
-    } catch (err) {
-      console.error("Koin store: save failed", err);
-    }
-  }
-
-  private _flushBeacon(): void {
-    // synchronous-safe save during unload — ONLY if this tab actually has unsaved edits, so
-    // merely viewing data and closing the tab can never overwrite the file. Unforced, so the
-    // server's shrink-guard still applies.
-    if (this.mode !== "file" || !this._dirty) return;
-    try {
-      navigator.sendBeacon("/api/data", new Blob([JSON.stringify(this.cache)], { type: "application/json" }));
-    } catch { /* ignore */ }
   }
 
   // --- typed accessors -----------------------------------------------------
@@ -200,15 +170,10 @@ class KoinStore {
     if (dump.rules)        await this.setRules(dump.rules);
     if (dump.categories)   await this.setCategories(dump.categories);
     if (dump.meta)         await this.setMeta(dump.meta);
-    if (this.mode === "file") await this._flush(true); // force: restore is intentional
   }
 
   async clearAll(): Promise<void> {
-    if (this.mode === "file") {
-      this.cache = {};
-      await this._flush(true); // force: reset is intentional
-      return;
-    }
+    if (this.mode === "idb") { await idbClear(); return; }
     Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
   }
 }

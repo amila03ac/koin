@@ -22,15 +22,16 @@ production build, run `npm run build` (outputs `dist/`) and preview it with `npm
 
 ### Where your data lives & persistence
 
-Your data is saved in **that browser's** storage (localStorage) and persists across reloads.
-It's per-browser for now; cross-device sync is the next milestone (see
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)). **⋯ → Export backup** / **Restore backup**
-moves data between browsers or machines. All persistence lives behind one storage adapter in
-`src/store/index.ts` — the seam for IndexedDB and a cloud backend later.
+Your data is saved in **that browser's** storage (**IndexedDB**, with localStorage as an
+automatic fallback) and persists across reloads. It's per-browser for now; cross-device sync
+is the next milestone (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)). **⋯ → Export backup**
+/ **Restore backup** moves data between browsers or machines. All persistence lives behind one
+storage adapter in `src/store/index.ts` — the seam for a cloud backend later.
 
-> **Upgrading from the old `node server.js` mode?** That file-backed helper is superseded by
-> the Vite dev server; data previously kept in `~/.koin/koin-data.json` won't appear
-> automatically — just **Import** your CSV again (or **Restore** a backup).
+> **Upgrading from an older version?** Data once kept by the retired `node server.js` helper at
+> `~/.koin/koin-data.json` won't load automatically — **Import** your CSV again (or **Restore**
+> a backup). Data already in your browser's localStorage is copied into IndexedDB once,
+> automatically, the first time you open this version.
 
 ## Using it
 
@@ -58,8 +59,8 @@ moves data between browsers or machines. All persistence lives behind one storag
 
 Vanilla JS bundled with **Vite**, with **TypeScript** being adopted module-by-module (the
 pure `parser`/`rules`/`insights` logic ports first). All persistence goes through one
-swappable storage adapter (`src/store/index.ts`, localStorage today) so IndexedDB and a cloud
-backend can be slotted in later without touching the UI. See [CLAUDE.md](CLAUDE.md) for the
+swappable storage adapter (`src/store/index.ts`, IndexedDB today) so a cloud backend can be
+slotted in later without touching the UI. See [CLAUDE.md](CLAUDE.md) for the
 current architecture and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the evolution plan.
 
 ## Tests

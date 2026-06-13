@@ -108,17 +108,27 @@ land (see "Tracking progress" above).
   - [x] _Slice 3e_ — typed the three remaining UI modules → `app.ts`, `table.ts`,
         `rules-editor.ts` under strict mode (DOM/element casts; `SaveRejection` added to the
         store). The whole `src/ui/` layer is now TypeScript. **Step 3 complete.**
-- [ ] **4. Make IndexedDB (Dexie) the storage backend.** No migration — users re-import CSVs.
-      Keep "Export backup" working as the durable escape hatch.
+- [x] **4. Make IndexedDB the storage backend.** — done. IndexedDB is now the default backend
+      via a hand-rolled ~40-line native KV wrapper (`src/store/idb.ts`); **no Dexie** — the
+      store only get/puts six whole blobs, so a dependency's query/index power would be dead
+      weight. localStorage remains an automatic fallback (old browsers / private mode / test
+      env). A one-time localStorage→IndexedDB seed in `init()` carries existing users' data
+      across (a straight blob copy, not a schema migration — keeps the "no migration code"
+      decision intact), so the "re-import" fallback is now only needed by old `~/.koin` users.
+      `server.cjs` and the entire file backend are retired (the `.claude` ~/.koin safeguards
+      stay, since the user's real-data file may persist on disk). "Export backup" still works.
+      IndexedDB path covered by `test/idb.test.ts` (fake-indexeddb).
 - [ ] **5. PWA** via `vite-plugin-pwa` — installable, offline.
 - [ ] **6. Deploy** to GitHub Pages via Actions (build → publish `dist/`).
 - [ ] **7. OSS hygiene:** CI runs Vitest on every PR; add `LICENSE` (MIT), `CONTRIBUTING.md`,
       issue/PR templates. → This is the **Stage 0 → Stage 1** transition.
 
-**Retire `server.js`.** Its only job was cross-browser local persistence via `~/.koin`
-(with shrink-guard, dirty-beacon, and the PreToolUse hook protecting it). Vite's dev server
-replaces it for development, and Supabase replaces it for cross-device sync — so once Phase 1
-lands, `server.js`, `~/.koin`, and the associated safeguards can be removed.
+**`server.cjs` retired (Step 4).** Its only job was cross-browser local persistence via
+`~/.koin` (with shrink-guard, dirty-beacon, and the PreToolUse hook protecting it). Vite's dev
+server replaced it for development and IndexedDB replaced it for storage, so the helper and the
+entire `file` backend in `store/index.ts` are gone. **The `.claude` ~/.koin safeguards stay**
+(deny-rules + `guard-koin-data.sh`): the user's real exported data file can still sit on disk,
+and protecting it costs nothing. Cross-device sync remains Supabase's job (Phase 2).
 
 ## Phase 2 — cloud sync (when wanted)
 

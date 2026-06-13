@@ -19,6 +19,15 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 - **Continuous integration** (GitHub Actions): typecheck + tests + build run on every push/PR.
 
 ### Changed
+- **Storage moved to IndexedDB.** Phase 1 Step 4: Koin now persists to the browser's
+  IndexedDB instead of localStorage, lifting the old ~5–10 MB cap to hundreds of MB / GBs —
+  room for years of statements — and writing off the main thread. localStorage stays as an
+  automatic fallback (very old browsers, some private-browsing modes). **Your existing data
+  is copied over automatically the first time you open this version** — no re-import needed.
+  Implemented as a ~40-line native KV wrapper (`src/store/idb.ts`), **no new dependencies**;
+  the `store` seam means no UI/core code changed. The retired `node server.cjs` shared-file
+  backend (`~/.koin/koin-data.json`) is removed — if you were still on it, **Import** your CSV
+  again or **Restore** a backup.
 - **The whole UI is now TypeScript.** Phase 1 Step 3b: `app.js` (≈870 lines) was split into
   focused, typed `src/ui/*` modules — `app` (composition root), `state`, `render-sections`,
   `render-bus`, `table`, `rules-editor`, plus `dom`/`modal`/`toast`/`backup`/`charts`. No

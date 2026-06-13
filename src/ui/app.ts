@@ -19,14 +19,7 @@ import { setRenderer } from "./render-bus";
 
 // ---- bootstrap ----------------------------------------------------------
 async function init(): Promise<void> {
-  await store.init(); // pick the storage backend (file via server.cjs, else localStorage)
-  // If the file backend refuses a save (a stale tab would shrink newer data), tell the user.
-  store.onSaveRejected = (info) => {
-    toast(
-      `Save blocked — newer data is on disk (${info.current} rows vs this tab's ${info.incoming}). Reload to see the latest.`,
-      { label: "Reload", fn: () => location.reload() },
-    );
-  };
+  await store.init(); // prefer IndexedDB; fall back to localStorage
   // A failed write (e.g. browser storage full) would otherwise be lost silently.
   store.onWriteError = () => {
     toast(
