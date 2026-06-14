@@ -20,6 +20,13 @@ npm run dev
 Click **Import CSV** and pick your statement (e.g. `data/Transactions.sample.csv`). To make a
 production build, run `npm run build` (outputs `dist/`) and preview it with `npm run preview`.
 
+### Install it / use it offline
+
+Koin is a **PWA**: from a built/deployed copy (`npm run build && npm run preview`, or once it's
+on the web) your browser offers an **Install** button — Koin then gets its own icon and window,
+and **works fully offline** after the first load (the app is cached; your data is already
+local). Offline/install applies to the build, not `npm run dev`.
+
 ### Where your data lives & persistence
 
 Your data is saved in **that browser's** storage (**IndexedDB**, with localStorage as an
@@ -60,7 +67,8 @@ storage adapter in `src/store/index.ts` — the seam for a cloud backend later.
 Vanilla JS bundled with **Vite**, with **TypeScript** being adopted module-by-module (the
 pure `parser`/`rules`/`insights` logic ports first). All persistence goes through one
 swappable storage adapter (`src/store/index.ts`, IndexedDB today) so a cloud backend can be
-slotted in later without touching the UI. See [CLAUDE.md](CLAUDE.md) for the
+slotted in later without touching the UI. It's a **PWA** (installable + offline) via
+`vite-plugin-pwa` — manifest and service worker are generated at build time. See [CLAUDE.md](CLAUDE.md) for the
 current architecture and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the evolution plan.
 
 ## Tests

@@ -25,3 +25,5 @@ Thumbs.db
 node_modules/
 npm-debug.log*
 dist/
+# vite-plugin-pwa's dev-mode service-worker output (only when devOptions.enabled)
+dev-dist/

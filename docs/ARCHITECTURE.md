@@ -118,7 +118,13 @@ land (see "Tracking progress" above).
       `server.cjs` and the entire file backend are retired (the `.claude` ~/.koin safeguards
       stay, since the user's real-data file may persist on disk). "Export backup" still works.
       IndexedDB path covered by `test/idb.test.ts` (fake-indexeddb).
-- [ ] **5. PWA** via `vite-plugin-pwa` — installable, offline.
+- [x] **5. PWA** via `vite-plugin-pwa` — installable, offline. — done. `registerType:
+      "autoUpdate"`, a generated web manifest (olive `#6f7a4e` theme), a Workbox service
+      worker precaching the whole app shell (built only, not in `npm run dev`), and a ◎-coin
+      icon set in `public/` (192/512 "any", 512 maskable, apple-touch, favicon.svg). `start_url`
+      /`scope` are left to derive from Vite's `base`, so Step 6's sub-path deploy needs no icon
+      rework. Verified: build emits `sw.js`/`manifest.webmanifest`/`registerSW.js`; `npm run
+      preview` serves them with correct content-types and the SW precaches `index.html`.
 - [ ] **6. Deploy** to GitHub Pages via Actions (build → publish `dist/`).
 - [ ] **7. OSS hygiene:** CI runs Vitest on every PR; add `LICENSE` (MIT), `CONTRIBUTING.md`,
       issue/PR templates. → This is the **Stage 0 → Stage 1** transition.

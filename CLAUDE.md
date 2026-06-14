@@ -68,6 +68,13 @@ the first run that upgrades a localStorage user to IndexedDB, `store.init()` cop
 existing data across once (a straight blob copy, not a schema migration), so nothing is lost.
 Data persists per browser; cross-device sync is a later phase (`docs/ARCHITECTURE.md`).
 
+Koin is a **PWA** (installable, offline) via `vite-plugin-pwa`. The web manifest + Workbox
+service worker are generated at **build** time only — `npm run dev` is unaffected (no SW, so
+no stale-cache surprises while developing). To exercise install/offline, run `npm run build &&
+npm run preview`. The SW precaches the app shell; `registerType: "autoUpdate"` means a new
+build's SW activates on the next load. Icons live in `public/`; `start_url`/`scope` derive from
+Vite's `base` (so a sub-path deploy needs no icon changes).
+
 > **`~/.koin/koin-data.json` may still hold the user's real data from the retired file
 > helper — never let tooling overwrite it.** The `node server.cjs` shared-file backend was
 > removed in Step 4 (Vite serves the app now), but the user's exported data file can remain on
@@ -78,8 +85,9 @@ Data persists per browser; cross-device sync is a later phase (`docs/ARCHITECTUR
 ```
 Koin/
   index.html            Dashboard shell; loads src/main.ts (Vite entry)
-  vite.config.ts        Vite + Vitest config
+  vite.config.ts        Vite + Vitest config; vite-plugin-pwa (manifest + service worker)
   tsconfig.json         TypeScript config
+  public/               Static assets copied as-is: PWA icons (◎ coin) + favicon.svg
   css/style.css         All styling
   src/
     main.ts             Vite entry: imports css + ui/app

@@ -13,6 +13,12 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 ## [Unreleased]
 
 ### Added
+- **Koin is now an installable, offline app (PWA).** Phase 1 Step 5: on a built/deployed copy
+  you can **install Koin** to your home screen or desktop — it gets its own icon and opens in
+  its own window, no browser chrome — and it **works fully offline** after the first visit (a
+  service worker caches the app; your data is already local). Adds a web manifest, a Workbox
+  service worker (`vite-plugin-pwa`), and a ◎-coin icon set. Offline/install applies to the
+  production build, not `npm run dev`. _(Try it with `npm run build && npm run preview`.)_
 - **Backup restore now validates the file's structure** before importing, so a corrupt or
   hand-edited backup (e.g. `transactions` that isn't a list) is rejected with a clear message
   instead of silently poisoning your data. Matters now that backups can travel between people.
