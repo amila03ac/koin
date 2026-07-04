@@ -14,13 +14,19 @@ export function toast(msg: string, action?: ToastAction): void {
   let el = $("#toast");
   if (!el) { el = h("div", { id: "toast" }); document.body.appendChild(el); }
   const box = el;
+  const dismiss = () => { box.classList.remove("show"); clearTimeout(toastTimer); };
   box.innerHTML = "";
   box.appendChild(h("span", {}, msg));
   if (action) {
     box.appendChild(h("button", {
       class: "toast-action",
-      onclick: () => { box.classList.remove("show"); clearTimeout(toastTimer); action.fn(); },
+      onclick: () => { dismiss(); action.fn(); },
     }, action.label));
+    // Action toasts linger (8s) so you can reach the button; give an explicit way to dismiss
+    // them now (e.g. keep the category, hide the Undo) without waiting or triggering the action.
+    box.appendChild(h("button", {
+      class: "toast-close", "aria-label": "Dismiss", onclick: dismiss,
+    }, "×"));
   }
   box.classList.add("show");
   clearTimeout(toastTimer);

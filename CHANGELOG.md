@@ -13,6 +13,9 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 ## [Unreleased]
 
 ### Added
+- **Toasts with an action (e.g. the "Undo" after learning a category) now have a close (×)
+  button**, so you can dismiss the message immediately — keeping the change — instead of
+  waiting for it to fade or being nudged toward Undo.
 - **Link a backup file on your disk (auto-saves).** In Chrome/Edge (and other Chromium
   browsers) you can now point Koin at a file on your hard drive via the ⋯ menu → **Link backup
   file**. Koin then rewrites your full data to that file automatically after every change, so

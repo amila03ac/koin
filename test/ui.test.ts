@@ -117,4 +117,17 @@ describe("toast()", () => {
     btn.dispatchEvent(new Event("click"));
     expect(ran).toBe(1);
   });
+  test("action toasts get a close button that dismisses without firing the action", () => {
+    let ran = 0;
+    toast("Undo me", { label: "Undo", fn: () => { ran++; } });
+    const close = document.querySelector("#toast .toast-close") as HTMLButtonElement;
+    expect(close).toBeTruthy();
+    close.dispatchEvent(new Event("click"));
+    expect(document.getElementById("toast")!.classList.contains("show")).toBe(false);
+    expect(ran).toBe(0); // dismiss must NOT run the Undo action
+  });
+  test("plain toasts have no close button", () => {
+    toast("Saved");
+    expect(document.querySelector("#toast .toast-close")).toBeNull();
+  });
 });
