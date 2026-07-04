@@ -15,6 +15,10 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      # Advisory only: surface a new high/critical advisory on the next PR without blocking it.
+      - name: Audit dependencies (non-blocking)
+        run: npm audit --audit-level=high
+        continue-on-error: true
       - run: npm run typecheck
       - run: npm test
       - run: npm run build

@@ -1,0 +1,14 @@
+# Keep the (dev-only) toolchain and CI actions current, so security advisories surface as
+# update PRs instead of silently aging. Koin ships zero runtime dependencies; this watches
+# the build/test tooling (Vite, Vitest, vite-plugin-pwa, …) and the workflow actions.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
