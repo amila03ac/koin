@@ -56,6 +56,24 @@ export function idbSet(key: string, value: unknown): Promise<void> {
   return run("readwrite", (s) => s.put(value, key)).then(() => undefined);
 }
 
+// Put several key→value pairs in ONE transaction, so they either all commit or all abort.
+// Used by store.importAll for an atomic restore: a mid-restore failure (e.g. quota) must not
+// leave a half-replaced dataset. IndexedDB transactions give this for free — if any put fails
+// the transaction aborts and nothing is applied.
+export function idbSetMany(entries: [string, unknown][]): Promise<void> {
+  return openDb().then(
+    (db) =>
+      new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(STORE, "readwrite");
+        const s = tx.objectStore(STORE);
+        for (const [key, value] of entries) s.put(value, key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      }),
+  );
+}
+
 export function idbDel(key: string): Promise<void> {
   return run("readwrite", (s) => s.delete(key)).then(() => undefined);
 }

@@ -13,6 +13,15 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 ## [Unreleased]
 
 ### Added
+- **Safer backup restore, and a heads-up about your storage.** Restoring a backup now (1)
+  **downloads a safety copy** of your current data and **asks you to confirm** before it
+  replaces anything — one mis-click can no longer wipe your data with no undo; (2) is
+  **atomic and honest** — the whole dataset is written in one all-or-nothing step and Koin
+  only reports "restored" once it has genuinely saved (a mid-restore failure, e.g. full
+  storage, now rolls back and tells you, instead of reloading onto half-saved data). The ⋯
+  menu shows whether your browser storage is **protected** (persistent) or **best-effort**
+  (can be evicted — Koin asks the browser to make it persistent on startup). If you have data
+  and haven't exported in a while, Koin gently nudges you to back up.
 - **Koin is now an installable, offline app (PWA).** Phase 1 Step 5: on a built/deployed copy
   you can **install Koin** to your home screen or desktop — it gets its own icon and opens in
   its own window, no browser chrome — and it **works fully offline** after the first visit (a
@@ -25,6 +34,12 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 - **Continuous integration** (GitHub Actions): typecheck + tests + build run on every push/PR.
 
 ### Changed
+- **Restore now replaces your whole dataset instead of merging into it.** A backup that omits
+  a section (e.g. no manual transactions) resets that section rather than leaving stale rows
+  mixed in with the restored ones — so "restore" reliably means "make my data match this file."
+- **Backups can no longer be restored from a newer version of Koin.** A backup whose schema
+  version is ahead of the running app is rejected with a clear message (Koin doesn't run
+  migration code), instead of being silently mis-read.
 - **Storage moved to IndexedDB.** Phase 1 Step 4: Koin now persists to the browser's
   IndexedDB instead of localStorage, lifting the old ~5–10 MB cap to hundreds of MB / GBs —
   room for years of statements — and writing off the main thread. localStorage stays as an

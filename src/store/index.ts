@@ -13,7 +13,7 @@
 // (Pre-Step-4 a third "file" backend talked to a local Node helper at ~/.koin/koin-data.json;
 // that helper — server.cjs — is retired now that Vite serves the app.)
 import type { Category, Override, RuleSet, Transaction } from "../core/types";
-import { idbAvailable, idbGet, idbSet, idbClear } from "./idb";
+import { idbAvailable, idbGet, idbSet, idbSetMany, idbClear } from "./idb";
 
 export type OverrideMap = Record<string, Override>;
 
@@ -21,6 +21,7 @@ export interface Meta {
   schemaVersion: number;
   imports: unknown[];
   paletteVersion?: number;
+  lastBackupAt?: string; // ISO time of the last export; drives the "back up your data" nudge
   [key: string]: unknown;
 }
 
@@ -117,6 +118,25 @@ class KoinStore {
     }
   }
 
+  // Atomic, strict multi-key write for restore: all keys land together or none do, and a
+  // failure PROPAGATES (unlike _write, which swallows so fire-and-forget accessors never
+  // reject). importAll relies on this so it can only report success once the data truly
+  // committed. On IndexedDB one transaction gives atomicity for free; on the localStorage
+  // fallback we snapshot the prior values and roll back if any write throws.
+  private async _writeAllStrict(entries: [string, unknown][]): Promise<void> {
+    if (this.mode === "idb") { await idbSetMany(entries); return; }
+    const prior = entries.map(([k]) => [k, localStorage.getItem(k)] as const);
+    try {
+      for (const [k, v] of entries) localStorage.setItem(k, JSON.stringify(v));
+    } catch (err) {
+      for (const [k, raw] of prior) {
+        // Best-effort rollback; never let a failing restore mask the original write error.
+        try { if (raw == null) localStorage.removeItem(k); else localStorage.setItem(k, raw); } catch { /* ignore */ }
+      }
+      throw err;
+    }
+  }
+
   // --- typed accessors -----------------------------------------------------
   async getTransactions(): Promise<Transaction[]> { return this._read(KEYS.transactions, [] as Transaction[]); }
   async setTransactions(list: Transaction[]): Promise<void> { return this._write(KEYS.transactions, list); }
@@ -150,6 +170,10 @@ class KoinStore {
     };
   }
 
+  // Restore = REPLACE the whole dataset with this backup, atomically. Not a merge: a key the
+  // backup omits is reset to empty rather than left holding stale rows, so you can't end up with
+  // a Frankenstein of old + restored data. Writes go through _writeAllStrict so the operation is
+  // all-or-nothing AND a failure propagates (the caller only reports success once it commits).
   async importAll(dump: Backup): Promise<void> {
     if (!dump || typeof dump !== "object") throw new Error("Invalid backup file");
     // Shape-check before writing anything, so a corrupt/hand-edited/shared backup can't
@@ -162,14 +186,23 @@ class KoinStore {
     if (dump.overrides !== undefined && !isObject(dump.overrides)) throw new Error("Invalid backup: 'overrides' must be an object");
     if (dump.categories != null && !isArray(dump.categories)) throw new Error("Invalid backup: 'categories' must be a list");
     if (dump.rules != null && !isObject(dump.rules)) throw new Error("Invalid backup: 'rules' must be an object");
+    if (dump.meta !== undefined && !isObject(dump.meta)) throw new Error("Invalid backup: 'meta' must be an object");
     if (dump.schemaVersion !== undefined && typeof dump.schemaVersion !== "number") throw new Error("Invalid backup: bad 'schemaVersion'");
+    // We don't run migration code (see docs/ARCHITECTURE.md); reject a backup from a newer
+    // schema instead of silently mis-reading it.
+    if (typeof dump.schemaVersion === "number" && dump.schemaVersion > SCHEMA_VERSION) {
+      throw new Error(`Backup is from a newer version of Koin (schema v${dump.schemaVersion}); update Koin to restore it.`);
+    }
 
-    if (dump.transactions) await this.setTransactions(dump.transactions);
-    if (dump.manual)       await this.setManual(dump.manual);
-    if (dump.overrides)    await this.setOverrides(dump.overrides);
-    if (dump.rules)        await this.setRules(dump.rules);
-    if (dump.categories)   await this.setCategories(dump.categories);
-    if (dump.meta)         await this.setMeta(dump.meta);
+    const meta: Meta = isObject(dump.meta) ? (dump.meta as Meta) : { schemaVersion: SCHEMA_VERSION, imports: [] };
+    await this._writeAllStrict([
+      [KEYS.transactions, dump.transactions ?? []],
+      [KEYS.manual,       dump.manual ?? []],
+      [KEYS.overrides,    dump.overrides ?? {}],
+      [KEYS.rules,        dump.rules ?? null],
+      [KEYS.categories,   dump.categories ?? null],
+      [KEYS.meta,         meta],
+    ]);
   }
 
   async clearAll(): Promise<void> {

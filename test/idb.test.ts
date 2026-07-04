@@ -7,7 +7,7 @@
 // write/read round-trip through the store, and clearAll.
 import "fake-indexeddb/auto";
 import { beforeAll, describe, expect, test } from "vitest";
-import { idbAvailable, idbGet, idbSet, idbDel, idbClear } from "../src/store/idb";
+import { idbAvailable, idbGet, idbSet, idbSetMany, idbDel, idbClear } from "../src/store/idb";
 import { store } from "../src/store/index";
 import type { Transaction } from "../src/core/types";
 
@@ -27,6 +27,14 @@ describe("idb KV wrapper", () => {
     await idbSet("x", 1);
     await idbClear();
     expect(await idbGet("x")).toBeUndefined();
+  });
+
+  test("idbSetMany writes several keys in one transaction", async () => {
+    await idbSetMany([["a", 1], ["b", { n: 2 }], ["c", [3]]]);
+    expect(await idbGet("a")).toBe(1);
+    expect(await idbGet("b")).toEqual({ n: 2 });
+    expect(await idbGet("c")).toEqual([3]);
+    await idbClear();
   });
 });
 

@@ -69,6 +69,10 @@ code { background: #ece5d6; padding: 1px 5px; border-radius: 5px; font-size: 12p
   border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--ink);
 }
 .menu-list button:hover { background: var(--hover); }
+.menu-status { font-size: 11px; padding: 4px 10px 6px; line-height: 1.35; }
+.menu-status:empty { display: none; }
+.menu-status.ok { color: var(--muted); }
+.menu-status.warn { color: var(--neg); }
 
 /* ---- layout ---- */
 main { max-width: 1140px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 18px; }

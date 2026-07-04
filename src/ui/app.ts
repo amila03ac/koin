@@ -16,6 +16,7 @@ import {
 import { renderTable, openTxnModal } from "./table";
 import { openRulesModal } from "./rules-editor";
 import { setRenderer } from "./render-bus";
+import { initStorageDurability } from "./storage-status";
 
 // ---- bootstrap ----------------------------------------------------------
 async function init(): Promise<void> {
@@ -43,6 +44,23 @@ async function init(): Promise<void> {
   compose();
   state.anchor = latestDate() || todayIso();
   renderAll();
+
+  await initStorageDurability(); // ask the browser to keep our data durable; reflect status
+  maybeNudgeBackup();            // gentle reminder if it's been a while since the last export
+}
+
+// Since browser storage can be wiped and an exported backup is the only fully durable copy,
+// nudge the user to export if they have data and haven't backed up in a while (or ever).
+async function maybeNudgeBackup(): Promise<void> {
+  if (!state.effective.length) return; // nothing worth backing up yet
+  const meta = await store.getMeta();
+  const last = typeof meta.lastBackupAt === "string" ? Date.parse(meta.lastBackupAt) : NaN;
+  const days = Number.isNaN(last) ? Infinity : (Date.now() - last) / 86_400_000;
+  if (days < 14) return;
+  toast(
+    Number.isFinite(days) ? "It's been a while since your last backup." : "Tip: export a backup to keep your data safe.",
+    { label: "Export backup", fn: exportBackup },
+  );
 }
 
 // Refresh stored category colors when the default palette version changes. Only updates

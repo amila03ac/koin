@@ -23,6 +23,34 @@ test("importAll accepts a well-formed backup", async () => {
   await expect(store.importAll({ transactions: [], manual: [], overrides: {}, rules: null, categories: [] })).resolves.toBeUndefined();
 });
 
+test("importAll rejects a backup from a newer schema version", async () => {
+  await expect(store.importAll({ schemaVersion: 999 } as unknown as Backup)).rejects.toThrow(/newer version/);
+});
+
+test("importAll REPLACES the whole dataset — omitted keys reset, not merged", async () => {
+  await store.setManual([{ id: "old" }] as unknown as never);
+  await store.importAll({ transactions: [{ id: "t" }] } as unknown as Backup);
+  expect(await store.getTransactions()).toEqual([{ id: "t" }]);
+  // 'manual' wasn't in the backup, so it must be reset to empty — not left holding the old row.
+  expect(await store.getManual()).toEqual([]);
+});
+
+test("importAll is atomic: a mid-restore write failure rolls back to the prior data", async () => {
+  await store.setTransactions([{ id: "keep-t" }] as unknown as never);
+  await store.setManual([{ id: "keep-m" }] as unknown as never);
+  const real = Storage.prototype.setItem;
+  // Let the first key write, then fail on 'manual' — the earlier transactions write must undo.
+  vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, k: string, v: string) {
+    if (k === "koin:manual") throw new DOMException("full", "QuotaExceededError");
+    return real.call(this, k, v);
+  });
+
+  await expect(store.importAll({ transactions: [{ id: "new-t" }], manual: [{ id: "new-m" }] } as unknown as Backup)).rejects.toThrow();
+  vi.restoreAllMocks();
+  expect(await store.getTransactions()).toEqual([{ id: "keep-t" }]);
+  expect(await store.getManual()).toEqual([{ id: "keep-m" }]);
+});
+
 test("a failed localStorage write notifies onWriteError instead of throwing", async () => {
   vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
     throw new DOMException("full", "QuotaExceededError");
