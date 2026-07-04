@@ -17,6 +17,7 @@ import { renderTable, openTxnModal } from "./table";
 import { openRulesModal } from "./rules-editor";
 import { setRenderer } from "./render-bus";
 import { initStorageDurability } from "./storage-status";
+import { initDiskBackup, diskBackupActive } from "./disk-backup";
 
 // ---- bootstrap ----------------------------------------------------------
 async function init(): Promise<void> {
@@ -46,13 +47,15 @@ async function init(): Promise<void> {
   renderAll();
 
   await initStorageDurability(); // ask the browser to keep our data durable; reflect status
+  await initDiskBackup();        // resume auto-saving to a linked disk file, if one is set up
   maybeNudgeBackup();            // gentle reminder if it's been a while since the last export
 }
 
 // Since browser storage can be wiped and an exported backup is the only fully durable copy,
 // nudge the user to export if they have data and haven't backed up in a while (or ever).
 async function maybeNudgeBackup(): Promise<void> {
-  if (!state.effective.length) return; // nothing worth backing up yet
+  if (!state.effective.length) return;   // nothing worth backing up yet
+  if (diskBackupActive()) return;        // a linked disk file already auto-saves — no nudge needed
   const meta = await store.getMeta();
   const last = typeof meta.lastBackupAt === "string" ? Date.parse(meta.lastBackupAt) : NaN;
   const days = Number.isNaN(last) ? Infinity : (Date.now() - last) / 86_400_000;

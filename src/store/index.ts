@@ -13,7 +13,7 @@
 // (Pre-Step-4 a third "file" backend talked to a local Node helper at ~/.koin/koin-data.json;
 // that helper — server.cjs — is retired now that Vite serves the app.)
 import type { Category, Override, RuleSet, Transaction } from "../core/types";
-import { idbAvailable, idbGet, idbSet, idbSetMany, idbClear } from "./idb";
+import { idbAvailable, idbGet, idbSet, idbSetMany, idbDel, idbClear } from "./idb";
 
 export type OverrideMap = Record<string, Override>;
 
@@ -37,6 +37,11 @@ export interface Backup {
 }
 
 const PREFIX = "koin:";
+// The linked on-disk backup file handle (File System Access API) lives under its own key,
+// deliberately OUTSIDE the KEYS map below: it's not user data, it's never exported into a
+// backup file (a handle can't be JSON-serialized), and it only persists on the idb backend
+// (localStorage can't structured-clone a handle).
+const BACKUP_HANDLE_KEY = PREFIX + "backupFileHandle";
 const KEYS = {
   transactions: PREFIX + "transactions",
   manual:       PREFIX + "manual",
@@ -51,6 +56,7 @@ export const SCHEMA_VERSION = 1;
 class KoinStore {
   mode: "idb" | "local" = "local"; // until init() prefers IndexedDB
   onWriteError: ((err: unknown) => void) | null = null; // app surfaces a failed write (e.g. quota)
+  onAfterWrite: (() => void) | null = null; // fires after any successful data write (drives disk backup)
 
   // Prefer IndexedDB; fall back to localStorage if it's unavailable. On the first run that
   // upgrades a localStorage user to IndexedDB, copy their existing data across once.
@@ -108,6 +114,7 @@ class KoinStore {
     try {
       if (this.mode === "idb") await idbSet(key, value);
       else localStorage.setItem(key, JSON.stringify(value));
+      if (this.onAfterWrite) this.onAfterWrite(); // data changed → refresh the disk backup
     } catch (err) {
       // Surface failures (e.g. QuotaExceededError, or a rejected IDB transaction) instead of
       // failing silently. The in-memory state is already updated; we notify so the app can
@@ -205,8 +212,23 @@ class KoinStore {
     ]);
   }
 
+  // --- linked disk-backup file handle (File System Access API) -------------
+  // Stored via IndexedDB's structured clone; unavailable on the localStorage fallback (a
+  // handle can't be serialized to a string). Written directly through idb* so it never trips
+  // onAfterWrite — persisting the handle isn't a data change.
+  async getBackupHandle(): Promise<FileSystemFileHandle | null> {
+    if (this.mode !== "idb") return null;
+    return (await idbGet<FileSystemFileHandle>(BACKUP_HANDLE_KEY)) ?? null;
+  }
+  async setBackupHandle(handle: FileSystemFileHandle): Promise<void> {
+    if (this.mode === "idb") await idbSet(BACKUP_HANDLE_KEY, handle);
+  }
+  async clearBackupHandle(): Promise<void> {
+    if (this.mode === "idb") await idbDel(BACKUP_HANDLE_KEY);
+  }
+
   async clearAll(): Promise<void> {
-    if (this.mode === "idb") { await idbClear(); return; }
+    if (this.mode === "idb") { await idbClear(); return; } // also drops the backup-file handle
     Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
   }
 }

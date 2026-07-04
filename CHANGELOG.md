@@ -13,6 +13,15 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 ## [Unreleased]
 
 ### Added
+- **Link a backup file on your disk (auto-saves).** In Chrome/Edge (and other Chromium
+  browsers) you can now point Koin at a file on your hard drive via the ⋯ menu → **Link backup
+  file**. Koin then rewrites your full data to that file automatically after every change, so
+  the file on disk is always current. If your browser clears its storage, crashes, or you
+  switch browser or computer, your data is safe in that file — just reopen Koin and **Restore**
+  it. The file is identical to a manual export, so the two are interchangeable. Browsers
+  without the File System Access API (Firefox, Safari) don't show the option and keep using
+  manual **Export backup**. (Browsers usually re-ask permission to write the file once per
+  session — click **Reconnect backup file** in the ⋯ menu to resume.)
 - **Safer backup restore, and a heads-up about your storage.** Restoring a backup now (1)
   **downloads a safety copy** of your current data and **asks you to confirm** before it
   replaces anything — one mis-click can no longer wipe your data with no undo; (2) is

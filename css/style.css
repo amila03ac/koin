@@ -73,6 +73,7 @@ code { background: #ece5d6; padding: 1px 5px; border-radius: 5px; font-size: 12p
 .menu-status:empty { display: none; }
 .menu-status.ok { color: var(--muted); }
 .menu-status.warn { color: var(--neg); }
+.menu-sep { height: 1px; background: var(--line); margin: 4px 2px; }
 
 /* ---- layout ---- */
 main { max-width: 1140px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 18px; }

@@ -9,7 +9,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { store } from "../src/store/index";
 import type { Backup } from "../src/store/index";
 
-beforeEach(() => { localStorage.clear(); store.onWriteError = null; });
+beforeEach(() => { localStorage.clear(); store.onWriteError = null; store.onAfterWrite = null; });
 afterEach(() => { vi.restoreAllMocks(); });
 
 test("importAll rejects a backup with the wrong shape", async () => {
@@ -49,6 +49,19 @@ test("importAll is atomic: a mid-restore write failure rolls back to the prior d
   vi.restoreAllMocks();
   expect(await store.getTransactions()).toEqual([{ id: "keep-t" }]);
   expect(await store.getManual()).toEqual([{ id: "keep-m" }]);
+});
+
+test("onAfterWrite fires after a successful write, not on reads", async () => {
+  let count = 0;
+  store.onAfterWrite = () => { count++; };
+  await store.getTransactions();     // read — must not fire
+  expect(count).toBe(0);
+  await store.setTransactions([]);   // write — fires once
+  expect(count).toBe(1);
+});
+
+test("getBackupHandle is null on the localStorage backend (handles need IndexedDB)", async () => {
+  expect(await store.getBackupHandle()).toBeNull();
 });
 
 test("a failed localStorage write notifies onWriteError instead of throwing", async () => {

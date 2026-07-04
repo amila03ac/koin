@@ -68,6 +68,19 @@ the first run that upgrades a localStorage user to IndexedDB, `store.init()` cop
 existing data across once (a straight blob copy, not a schema migration), so nothing is lost.
 Data persists per browser; cross-device sync is a later phase (`docs/ARCHITECTURE.md`).
 
+**Durability (browser storage can be wiped, so guard against it).** Browser storage is
+best-effort — it can be evicted under pressure and Safari clears unused site data after ~7 days
+— so on startup Koin calls `navigator.storage.persist()` (status shown in the ⋯ menu) and,
+until Phase 2 cloud sync exists, an **exported backup / a linked disk file is the only fully
+durable copy**. Two durability aids beyond manual **Export backup**: (1) a linked **disk-backup
+file** (`ui/disk-backup.ts`, File System Access API, Chromium only) that auto-rewrites the full
+`store.exportAll()` dump after every change — driven by the `store.onAfterWrite` hook (fires
+after any successful data write) and debounced; the file is byte-identical to a manual backup;
+(2) a **restore** path (`store.importAll`) that is atomic (one all-or-nothing write via
+`_writeAllStrict`; IndexedDB gives true transaction atomicity, localStorage snapshots+rolls
+back), full-**replace** (not merge), and honest (only reports success once the write commits;
+rejects a newer-schema backup). Restore first downloads a safety snapshot and confirms.
+
 Koin is a **PWA** (installable, offline) via `vite-plugin-pwa`. The web manifest + Workbox
 service worker are generated at **build** time only — `npm run dev` is unaffected (no SW, so
 no stale-cache surprises while developing). To exercise install/offline, run `npm run build &&
@@ -106,7 +119,9 @@ Koin/
       dom.ts            Tiny DOM helpers: h() element builder, $, money, fmtDate, todayIso, field
       toast.ts          Transient notification (with optional action button)
       modal.ts          Overlay modal primitive (openModal)
-      backup.ts         Export / restore / reset all data
+      backup.ts         Export / restore (atomic, confirmed, safety-snapshot) / reset all data
+      disk-backup.ts    Optional auto-backup to a linked HDD file (File System Access API; Chromium)
+      storage-status.ts navigator.storage.persist() + persisted/best-effort indicator
       charts.ts         Dependency-free inline-SVG donut + bar charts
       render-sections.ts  Leaf panel renderers: summary, charts, insights, period jump, filter
       render-bus.ts     setRenderer/rerender indirection (lets modules re-render w/o importing app)
