@@ -3,8 +3,9 @@
 data/*.csv
 !data/Transactions.sample.csv
 !data/Transactions.sample-detailed.csv
-# App backups exported via "Export backup"
+# App backups (real data): "Export backup" downloads and the pre-restore safety snapshot
 koin-backup-*.json
+koin-before-restore-*.json
 # The live data file lives in ~/.koin (outside the repo) — listed here as a reminder.
 # ~/.koin/koin-data.json
 

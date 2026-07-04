@@ -250,6 +250,27 @@ Don't over-engineer a POC, but don't cut corners that cause data loss. See ROADM
 not silently losing user data; defer auth, migrations, perf budgets, and security hardening
 until Stage 1+ (shareable/hosted).
 
+### Repository hygiene — check before every commit or file update
+Koin is a public-facing repo. **Before staging, committing, or updating any tracked file, scan
+the change (`git diff` / `git diff --staged`) and refuse to commit anything that contains:**
+- **Personal data / PII** — real names, emails, phone numbers, addresses, account/card numbers,
+  government IDs, or any identifiable person. Author identity comes from git config, *not* file
+  contents — don't hardcode names/emails in tracked files.
+- **Credentials or secrets** — API keys, tokens, passwords, private keys, `.env` contents,
+  session cookies, or SSH key material/paths.
+- **Real financial / expense data** — actual bank statements, transactions, balances, or
+  exported backups. Only the **synthetic** `data/Transactions.sample*.csv` may be committed.
+- **Machine-specific / local detail** — absolute home paths (`/Users/…`, `~/.ssh`, `~/.koin`),
+  local hostnames, personal repo/account URLs, or one-off setup notes. These belong in local,
+  gitignored config (`.claude/launch.json`, `~/.ssh/config`), never in tracked docs.
+- **Bulk / generated cruft** — `node_modules/`, `dist/`, `dev-dist/`, build output, large
+  binaries, logs, editor/OS files.
+
+The `.gitignore` already blocks real CSVs, exported/pre-restore backups, and machine config —
+**never `git add -f` past it.** If you find secret/PII/real-data *already committed*, stop and
+tell the user: it needs a history scrub + force-push (don't just delete it in a new commit,
+which leaves it in history).
+
 ### Commits & attribution
 - Commit with the repository's configured git identity (set in this repo's local git config,
   so no `--author` override is needed). A `Co-Authored-By: Claude …` trailer on Claude-made

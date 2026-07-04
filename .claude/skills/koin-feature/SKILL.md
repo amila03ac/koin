@@ -121,6 +121,9 @@ took, and what you deliberately deferred to a later stage (and why).
 Whether or not the user asks you to commit, **end the task by giving them a ready-to-paste
 git commit command** with a crafted message, so they can commit in one step:
 
+- **Repository hygiene first.** Scan the diff against CLAUDE.md → "Repository hygiene — check
+  before every commit": no PII, credentials/secrets, real finance data, or machine-specific
+  paths. Never `git add -f` past `.gitignore`.
 - Stage + commit in a single block. Concise imperative subject (≤ ~70 chars) and a short
   body explaining the *why*; mention the CHANGELOG bump if relevant.
 - **Attribution.** The repo's git config sets the author identity, so no `--author` override
