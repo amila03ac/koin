@@ -73,6 +73,11 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 - **A failed save no longer disappears silently.** If the browser's storage is full
   (`QuotaExceededError`), Koin now shows a toast prompting you to export a backup, instead of
   logging to the console while the UI pretends the write succeeded.
+- **Ignoring a manual transaction now waits for the save.** `toggleIgnore` awaits its store
+  write like every other edit, so a failed save is caught before the UI shows it as done.
+- **A corrupt CSV date can't create a phantom month.** An out-of-range date like `45/13/2026`
+  is now rejected on import (the row is skipped) instead of producing a bogus `2026-13` bucket
+  in the dashboard and period picker.
 
 ### Security
 - Removed the `html`/`innerHTML` escape hatch from the `h()` DOM helper (it had no callers) so

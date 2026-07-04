@@ -34,6 +34,12 @@ describe("parser — standard (Bank A) format", () => {
   });
   test("DD/MM/YYYY parsed (not US MM/DD)", () =>
     expect(parser.parsePostedDate("31/03/2026")).toBe("2026-03-31"));
+  test("out-of-range day/month rejected (no phantom '2026-13' bucket)", () => {
+    expect(parser.parsePostedDate("45/13/2026")).toBeNull();
+    expect(parser.parsePostedDate("00/05/2026")).toBeNull();
+    expect(parser.parsePostedDate("10/00/2026")).toBeNull();
+    expect(parser.parsePostedDate("31/12/2026")).toBe("2026-12-31"); // boundary still valid
+  });
 });
 
 describe("parser — detailed (Bank B) format", () => {

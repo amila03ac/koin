@@ -45,6 +45,10 @@ function parsePostedDate(s: string): string | null {
   const m = String(s).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (!m) return null;
   const [, d, mo, y] = m;
+  // Reject impossible days/months (e.g. a corrupt "45/13/2026") so they don't leak a phantom
+  // "2026-13" month bucket into the dashboard. The row is then counted as skipped, as intended.
+  const day = +d, mon = +mo;
+  if (mon < 1 || mon > 12 || day < 1 || day > 31) return null;
   return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
 }
 

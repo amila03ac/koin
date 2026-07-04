@@ -162,10 +162,10 @@ function learnRule(merchant: string, category: string): void {
   else state.rules!.categoryRules.push({ match: merchant, category, isRegex: false, learned: true });
 }
 
-function toggleIgnore(t: Transaction): void {
+async function toggleIgnore(t: Transaction): Promise<void> {
   if (t.source === "manual") {
     const m = state.manual.find((x) => x.id === t.id);
-    if (m) { m.ignored = !m.ignored; store.setManual(state.manual); compose(); rerender(); }
+    if (m) { m.ignored = !m.ignored; await store.setManual(state.manual); compose(); rerender(); }
   } else {
     setOverride(t.id, { ignored: !t.ignored });
   }
