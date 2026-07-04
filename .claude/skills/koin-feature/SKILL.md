@@ -92,8 +92,8 @@ and offer the adjustment. A good outcome is sometimes a reshaped or declined fea
 - If your work completes (or advances) a step in **`docs/ARCHITECTURE.md`**, tick its
   checkbox / update its status in the same commit — that file tracks the migration's
   progress and goes stale fast if sessions don't update it.
-- Commits in this repo are authored as **Amila** with **no AI co-author trailer** (see
-  CLAUDE.md → "Commits & attribution"). Only commit/push when the user asks.
+- Commits use the repo's configured git identity; a `Co-Authored-By: Claude …` trailer is
+  welcome (see CLAUDE.md → "Commits & attribution"). Only commit/push when the user asks.
 
 ## 6. Self-review — scaled to the project stage
 
@@ -123,8 +123,8 @@ git commit command** with a crafted message, so they can commit in one step:
 
 - Stage + commit in a single block. Concise imperative subject (≤ ~70 chars) and a short
   body explaining the *why*; mention the CHANGELOG bump if relevant.
-- **No `Co-Authored-By` / AI trailer.** The repo's git config already authors as Amila, so
-  no `--author` override is needed — but never add an attribution trailer.
+- **Attribution.** The repo's git config sets the author identity, so no `--author` override
+  is needed. A `Co-Authored-By: Claude …` trailer on Claude-made commits is welcome.
 - Format it as a copy-pasteable fenced `bash` block, e.g.:
 
   ```bash

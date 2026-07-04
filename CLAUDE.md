@@ -251,10 +251,9 @@ not silently losing user data; defer auth, migrations, perf budgets, and securit
 until Stage 1+ (shareable/hosted).
 
 ### Commits & attribution
-- Commits are authored as **Amila** (`amila03ac@gmail.com`) with **no
-  AI / co-author trailer** — all work is attributed to the user. Don't add a
-  `Co-Authored-By` line. (Enforce repo-wide via `attribution.commit: ""` in
-  `.claude/settings.json` if not already set.)
+- Commit with the repository's configured git identity (set in this repo's local git config,
+  so no `--author` override is needed). A `Co-Authored-By: Claude …` trailer on Claude-made
+  commits is welcome.
 - **Only commit or push when the user explicitly asks.** Prefer one focused commit per
   feature/fix.
 
