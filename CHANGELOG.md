@@ -78,6 +78,9 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 - **A corrupt CSV date can't create a phantom month.** An out-of-range date like `45/13/2026`
   is now rejected on import (the row is skipped) instead of producing a bogus `2026-13` bucket
   in the dashboard and period picker.
+- **Dropping to fallback storage is no longer silent.** If the browser can't open IndexedDB and
+  Koin falls back to lower-capacity localStorage, it now warns you (with an Export shortcut)
+  instead of quietly operating under a much smaller storage limit.
 
 ### Security
 - Removed the `html`/`innerHTML` escape hatch from the `h()` DOM helper (it had no callers) so

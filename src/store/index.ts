@@ -55,6 +55,9 @@ export const SCHEMA_VERSION = 1;
 
 class KoinStore {
   mode: "idb" | "local" = "local"; // until init() prefers IndexedDB
+  // True when IndexedDB was present but failed to open (blocked tab / some private modes), so we
+  // fell back to the lower-quota localStorage. The app surfaces this so the drop isn't silent.
+  fellBackToLocal = false;
   onWriteError: ((err: unknown) => void) | null = null; // app surfaces a failed write (e.g. quota)
   onAfterWrite: (() => void) | null = null; // fires after any successful data write (drives disk backup)
 
@@ -70,6 +73,7 @@ class KoinStore {
         return;
       } catch (err) {
         console.warn("Koin store: IndexedDB unavailable, using localStorage", err);
+        this.fellBackToLocal = true;
       }
     }
     this.mode = "local";

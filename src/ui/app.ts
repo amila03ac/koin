@@ -48,7 +48,15 @@ async function init(): Promise<void> {
 
   await initStorageDurability(); // ask the browser to keep our data durable; reflect status
   await initDiskBackup();        // resume auto-saving to a linked disk file, if one is set up
-  maybeNudgeBackup();            // gentle reminder if it's been a while since the last export
+  if (store.fellBackToLocal) {
+    // Don't let a drop to lower-capacity fallback storage pass silently — it changes the quota.
+    toast(
+      "Couldn't open the usual storage — using a lower-capacity fallback. Export backups regularly.",
+      { label: "Export backup", fn: exportBackup },
+    );
+  } else {
+    maybeNudgeBackup();          // gentle reminder if it's been a while since the last export
+  }
 }
 
 // Since browser storage can be wiped and an exported backup is the only fully durable copy,
