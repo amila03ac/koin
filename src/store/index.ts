@@ -195,6 +195,20 @@ class KoinStore {
     if (dump.rules != null && !isObject(dump.rules)) throw new Error("Invalid backup: 'rules' must be an object");
     if (dump.meta !== undefined && !isObject(dump.meta)) throw new Error("Invalid backup: 'meta' must be an object");
     if (dump.schemaVersion !== undefined && typeof dump.schemaVersion !== "number") throw new Error("Invalid backup: bad 'schemaVersion'");
+    // Validate the money-critical fields of every transaction, so a hand-edited/shared backup
+    // with e.g. `"amount": "abc"` can't write NaN into the store and poison every total. Cheap
+    // at personal scale (a few thousand rows), and restore is all-or-nothing anyway.
+    const checkTxns = (list: Transaction[] | undefined, label: string) => {
+      for (let i = 0; i < (list?.length ?? 0); i++) {
+        const t = list![i] as unknown as Record<string, unknown>;
+        if (!isObject(t)) throw new Error(`Invalid backup: ${label}[${i}] is not a transaction`);
+        if (typeof t.id !== "string" || !t.id) throw new Error(`Invalid backup: ${label}[${i}] has no valid id`);
+        if (typeof t.amount !== "number" || !Number.isFinite(t.amount)) throw new Error(`Invalid backup: ${label}[${i}] has a non-numeric amount`);
+        if (t.direction !== undefined && t.direction !== "debit" && t.direction !== "credit") throw new Error(`Invalid backup: ${label}[${i}] has an invalid direction`);
+      }
+    };
+    checkTxns(dump.transactions, "transactions");
+    checkTxns(dump.manual, "manual");
     // We don't run migration code (see docs/ARCHITECTURE.md); reject a backup from a newer
     // schema instead of silently mis-reading it.
     if (typeof dump.schemaVersion === "number" && dump.schemaVersion > SCHEMA_VERSION) {

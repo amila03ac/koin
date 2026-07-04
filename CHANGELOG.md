@@ -82,6 +82,13 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 ### Security
 - Removed the `html`/`innerHTML` escape hatch from the `h()` DOM helper (it had no callers) so
   a future change can't accidentally introduce XSS; all text goes through escaped text nodes.
+- **Guard against a rule regex freezing the page (ReDoS).** A pathological pattern like `(a+)+`
+  could hang the tab on every recategorize — and, once backups are shared, arrive inside someone
+  else's file. Koin now rejects such patterns when you save them in the Rules editor (with a
+  clear message) and neutralizes them at run time, so a rule can never lock up the app.
+- **Backup restore now validates transaction fields, not just structure.** A hand-edited or
+  shared backup with e.g. a non-numeric `amount` or bad `direction` is rejected with a clear
+  message instead of writing `NaN` into your data and corrupting every total.
 
 ### Changed (earlier Phase 1 migration steps)
 - **Removed the global `Koin` namespace; the app is now a real ES-module graph.** Phase 1

@@ -27,17 +27,32 @@ test("importAll rejects a backup from a newer schema version", async () => {
   await expect(store.importAll({ schemaVersion: 999 } as unknown as Backup)).rejects.toThrow(/newer version/);
 });
 
+test("importAll rejects a transaction with a non-numeric amount (protects money math)", async () => {
+  await expect(store.importAll({ transactions: [{ id: "t", amount: "abc" }] } as unknown as Backup))
+    .rejects.toThrow(/amount/);
+  await expect(store.importAll({ manual: [{ id: "m", amount: 5, direction: "sideways" }] } as unknown as Backup))
+    .rejects.toThrow(/direction/);
+  await expect(store.importAll({ transactions: [{ amount: 5 }] } as unknown as Backup))
+    .rejects.toThrow(/id/);
+  // A well-formed transaction still imports.
+  await expect(store.importAll({ transactions: [{ id: "t", amount: -5, direction: "debit" }] } as unknown as Backup))
+    .resolves.toBeUndefined();
+});
+
 test("importAll REPLACES the whole dataset — omitted keys reset, not merged", async () => {
+  const t = { id: "t", amount: -5, direction: "debit" };
   await store.setManual([{ id: "old" }] as unknown as never);
-  await store.importAll({ transactions: [{ id: "t" }] } as unknown as Backup);
-  expect(await store.getTransactions()).toEqual([{ id: "t" }]);
+  await store.importAll({ transactions: [t] } as unknown as Backup);
+  expect(await store.getTransactions()).toEqual([t]);
   // 'manual' wasn't in the backup, so it must be reset to empty — not left holding the old row.
   expect(await store.getManual()).toEqual([]);
 });
 
 test("importAll is atomic: a mid-restore write failure rolls back to the prior data", async () => {
-  await store.setTransactions([{ id: "keep-t" }] as unknown as never);
-  await store.setManual([{ id: "keep-m" }] as unknown as never);
+  const keepT = { id: "keep-t", amount: -1, direction: "debit" };
+  const keepM = { id: "keep-m", amount: -2, direction: "debit" };
+  await store.setTransactions([keepT] as unknown as never);
+  await store.setManual([keepM] as unknown as never);
   const real = Storage.prototype.setItem;
   // Let the first key write, then fail on 'manual' — the earlier transactions write must undo.
   vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, k: string, v: string) {
@@ -45,10 +60,10 @@ test("importAll is atomic: a mid-restore write failure rolls back to the prior d
     return real.call(this, k, v);
   });
 
-  await expect(store.importAll({ transactions: [{ id: "new-t" }], manual: [{ id: "new-m" }] } as unknown as Backup)).rejects.toThrow();
+  await expect(store.importAll({ transactions: [{ id: "new-t", amount: -3, direction: "debit" }], manual: [{ id: "new-m", amount: -4, direction: "debit" }] } as unknown as Backup)).rejects.toThrow();
   vi.restoreAllMocks();
-  expect(await store.getTransactions()).toEqual([{ id: "keep-t" }]);
-  expect(await store.getManual()).toEqual([{ id: "keep-m" }]);
+  expect(await store.getTransactions()).toEqual([keepT]);
+  expect(await store.getManual()).toEqual([keepM]);
 });
 
 test("onAfterWrite fires after a successful write, not on reads", async () => {

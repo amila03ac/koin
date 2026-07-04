@@ -5,6 +5,21 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// Reject user-supplied regex that could cause catastrophic backtracking (ReDoS). `apply()` runs
+// every rule against every transaction on every compose(), and JS has no regex timeout, so a
+// pattern like `(a+)+` would freeze the tab — and once Koin is open-source, a crafted rule can
+// arrive inside a shared backup and run on the importer's machine. This is a cheap heuristic,
+// not a proof: it caps length and flags the classic exponential shape — an unbounded quantifier
+// nested inside a group that is itself unbounded-quantified, e.g. `(a+)+`, `(.*)*`, `(\d{2,})+`.
+// (Plain substring patterns are escaped first, so they're always safe and skip this check.)
+const UNBOUNDED = String.raw`(?:[*+]|\{\d+,\})`;
+const NESTED_QUANTIFIER = new RegExp(String.raw`\([^()]*${UNBOUNDED}[^()]*\)${UNBOUNDED}`);
+export function isSafeRegexSource(src: string): boolean {
+  if (src.length > 200) return false;
+  if (NESTED_QUANTIFIER.test(src)) return false;
+  return true;
+}
+
 // Compile each distinct pattern once and reuse it. apply() runs on every compose() (i.e.
 // every UI mutation), against every transaction, so without this the same RegExp would be
 // reconstructed thousands of times per rerender. Keyed by source + isRegex; invalid patterns
@@ -16,11 +31,17 @@ function toRegex(rule: { match: string; isRegex?: boolean }): RegExp | null {
   const cached = reCache.get(key);
   if (cached !== undefined) return cached;
   let re: RegExp | null;
-  try {
-    re = new RegExp(rule.isRegex ? rule.match : escapeRegex(rule.match), "i");
-  } catch (err) {
-    console.warn("Koin rules: invalid pattern", rule, err);
+  if (rule.isRegex && !isSafeRegexSource(rule.match)) {
+    // Neutralize (treat as non-matching) rather than compile+run a pattern that could hang.
+    console.warn("Koin rules: skipping potentially unsafe regex pattern", rule.match);
     re = null;
+  } else {
+    try {
+      re = new RegExp(rule.isRegex ? rule.match : escapeRegex(rule.match), "i");
+    } catch (err) {
+      console.warn("Koin rules: invalid pattern", rule, err);
+      re = null;
+    }
   }
   reCache.set(key, re);
   return re;

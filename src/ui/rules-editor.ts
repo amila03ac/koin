@@ -2,9 +2,10 @@
 // category manager (add / rename / recolor), and the advanced raw-JSON rules editor, plus
 // "re-apply rules to history". Reads `state`, persists via the store, and calls rerender()
 // to refresh the dashboard.
-import type { Category, CategoryRule } from "../core/types";
+import type { Category, CategoryRule, IgnorePattern } from "../core/types";
 import { store } from "../store/index";
 import * as categories from "../core/categories";
+import { isSafeRegexSource } from "../core/rules";
 import { h, $, field } from "./dom";
 import { toast } from "./toast";
 import { openModal } from "./modal";
@@ -55,6 +56,11 @@ export function openRulesModal(): void {
   const saveEditors = async () => {
     try {
       const parsed = JSON.parse(ta.value);
+      // Reject a regex that could hang the page (ReDoS) before saving it, with a clear message —
+      // the core also neutralizes it at run time, but catching it here tells the user why.
+      const bad = [...(parsed.ignorePatterns || []), ...(parsed.categoryRules || [])]
+        .find((r: IgnorePattern | CategoryRule) => r.isRegex && !isSafeRegexSource(r.match));
+      if (bad) { toast(`Unsafe regex pattern “${bad.match}” — avoid nested quantifiers like (a+)+, or shorten it.`); return false; }
       const learned = (state.rules!.categoryRules || []).filter((r) => r.learned);
       const handCats = (parsed.categoryRules || []).filter((r: CategoryRule) => !r.learned); // ignore stray learned flags
       state.rules = { ...parsed, categoryRules: [...handCats, ...learned] };

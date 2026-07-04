@@ -100,6 +100,20 @@ describe("rules", () => {
     expect(uber.length).toBeGreaterThanOrEqual(1);
     expect(uber.every((t) => t.category === "dining")).toBe(true);
   });
+  test("isSafeRegexSource flags catastrophic-backtracking shapes, allows normal ones", () => {
+    expect(rules.isSafeRegexSource("(a+)+")).toBe(false);
+    expect(rules.isSafeRegexSource("(.*)*")).toBe(false);
+    expect(rules.isSafeRegexSource("(\\d{2,})+")).toBe(false);
+    expect(rules.isSafeRegexSource("a".repeat(201))).toBe(false); // length cap
+    expect(rules.isSafeRegexSource("woolworths|coles")).toBe(true);
+    expect(rules.isSafeRegexSource("^AMZN.*mktp")).toBe(true);
+    expect(rules.isSafeRegexSource("netflix")).toBe(true);
+  });
+  test("an unsafe regex rule is neutralized (no hang, treated as non-matching)", () => {
+    const out = rules.apply(transactions, { ignorePatterns: [], categoryRules: [{ match: "(a+)+$", category: "dining", isRegex: true }] });
+    // It simply doesn't match anything, rather than freezing the tab.
+    expect(out.every((t) => t.category !== "dining" || t.categorySource === "manual")).toBe(true);
+  });
 });
 
 describe("categories", () => {
