@@ -15,20 +15,27 @@ Read these before designing anything. They are the source of truth — this skil
 duplicate them, it points at them:
 
 - `CLAUDE.md` — architecture, data model, CSV quirks, conventions. **Read fully.**
-- `ROADMAP.md` — direction + the **project stages** (we're at Stage 0: local POC).
+- `ROADMAP.md` — direction + the **project stages**. Koin is at **Stage 1** (open source,
+  hosted on GitHub Pages) as of v0.7.0 — confirm there rather than trusting this line, and
+  review against that bar (see §6).
 - `CHANGELOG.md` — what already shipped (recent entries show the working style).
 - `src/store/index.ts`, `src/core/{parser,rules,insights,categories,defaults}.ts`,
-  `src/ui/*.ts` (app, table, rules-editor, render-sections, dom, modal, toast, charts, …) —
-  skim the ones your change touches. `test/*.test.ts` — how
-  logic is tested (Vitest).
+  `src/ui/*.ts` (app, state, table, rules-editor, render-sections, render-bus, dom, modal,
+  toast, charts, backup, disk-backup, storage-status) — skim the ones your change touches.
+  `test/*.test.ts` — how logic is tested (Vitest).
+- `CONTRIBUTING.md` — the public-facing version of these rules; keep it in sync if you change
+  the contributor workflow.
 
 ## Non-negotiable invariants (violating these is a bug)
 
 1. **All persistence goes through `src/store/index.ts`.** Nothing else touches `localStorage`.
    New persistent data ⇒ add async methods there, keeping the swap-to-DB seam intact.
 2. **ES modules, built with Vite — no global namespace.** Import what you need; don't reach
-   for a global `Koin` (that bridge was removed in Step 3a). TypeScript for new/ported code;
-   keep runtime dependencies minimal. New module ⇒ `import` it where it's used.
+   for a global `Koin` (that bridge was removed in Step 3a). TypeScript for new code. New
+   module ⇒ `import` it where it's used; there is no script order to maintain.
+   **Runtime dependencies stay at zero** — everything in `package.json` is a devDependency,
+   and that's what keeps the shipped app dependency-free. Adding even a dev tool needs a real
+   reason (see CLAUDE.md → dependency supply-chain policy).
 3. **Pure core stays pure.** `src/core/*` (parser, rules, insights, categories, defaults) and
    the domain types have no DOM/storage — keep them that way so they stay testable/portable.
 4. **Money math is sacred.** Money out is negative; ignore internal transfers; bucket by
@@ -63,8 +70,23 @@ and offer the adjustment. A good outcome is sometimes a reshaped or declined fea
 
 ## 3. Implement
 
-- Make the focused change. Update `index.html` script order if you add a file.
+- Make the focused change. New files are just imported — there is no script order.
 - Add seed data to `src/core/defaults.ts` (and mirror `config/*.json`) for new categories/rules.
+
+### The deployed app runs under a strict Content-Security-Policy
+
+`npm run dev` has **no CSP**, so these mistakes work locally and break only in production —
+assume nothing, check the policy in `vite.config.ts`:
+
+- **No inline scripts and no `eval`.** Never add an `onclick="…"` attribute or an inline
+  `<script>` to `index.html`; bind events in TypeScript instead (`addEventListener`).
+- **No external requests** — no CDN, font, image, or API host. `connect-src` is `'self'`.
+  Anything Koin loads must be shipped with it.
+- **Files the app fetches at runtime must be emitted into the build.** Vite only copies
+  `public/`; `data/` is emitted by a small plugin in `vite.config.ts`. If you add a runtime
+  asset, make sure it actually lands in `dist/` — a missing one 404s silently in production
+  while working perfectly in dev.
+- Inline `style="…"` attributes are allowed (`style-src` permits them), so charts are fine.
 
 ## 4. Verify (required before claiming done)
 
@@ -73,6 +95,11 @@ and offer the adjustment. A good outcome is sometimes a reshaped or declined fea
 - Drive the real UI in the browser via `npm run dev` (http://localhost:4178) and confirm the
   feature works end-to-end, including persistence across reload and at least one edge case.
   Don't rely on screenshots alone — assert DOM/state via eval.
+- **Also check the production build** (`npm run build && npm run preview`, served at
+  **`/koin/`**, not `/`) whenever your change touches URLs, `fetch`, runtime assets, the
+  service worker, or adds markup. Dev hides CSP violations, sub-path bugs, and files missing
+  from `dist/`. Listen for real violations rather than eyeballing it:
+  `addEventListener('securitypolicyviolation', e => console.log(e.violatedDirective))`.
 - **NEVER let testing touch real user data.** The dev server stores data per-browser, so it
   can't reach the local Koin data directory — but a maintainer's machine may hold real
   financial data there, so never point tooling at it. A PreToolUse hook blocks writes to it;
@@ -104,12 +131,19 @@ Always (every stage):
 - Tests pass and cover the new logic. Dead code / leftovers removed.
 - Changelog updated; behavior matches the docs.
 
-Stage 0 (local POC) — keep it light: skip auth, perf budgets, exhaustive validation, and
-security hardening unless they affect correctness or data safety.
+**Stage 1 — shareable / hosted (current).** The app is public, so also require: input
+validation and honest error states for anything that accepts untrusted input (imported CSVs,
+restored backups, user-authored regex rules); data-loss safety; no CSP violations or
+production-only breakage; and a security think for anything touching the network or executing
+user-supplied patterns. Real users' financial data is now in play — a silent failure is worse
+than a loud one.
 
-Stage 1+ (shareable/hosted) — additionally: input validation & error states, data-loss
-safety (backups/migrations), real backend behind `store.js`, failure observability, and a
-security pass on anything that crosses the network or accepts untrusted input.
+Stage 0 (local POC) — *historical, for context only:* it kept things light by deferring auth,
+perf budgets, exhaustive validation, and security hardening. Don't apply that bar now.
+
+Stage 2 (multi-user / product) — still deferred: accounts, auth, migrations, observability,
+performance budgets, formal security review. A real backend would go behind the same
+`src/store/index.ts` seam.
 
 Report the self-review honestly to the user: what you verified, any risks or shortcuts you
 took, and what you deliberately deferred to a later stage (and why).
@@ -135,11 +169,15 @@ git commit command** with a crafted message, so they can commit in one step:
   ```
 
 - If the change spans unrelated concerns, suggest splitting into focused commits instead.
-- If the user *did* ask you to commit, run it yourself (still no trailer), then show
-  `git log -1 --stat` so they can confirm.
+- If the user *did* ask you to commit, run it yourself, then show `git log -1 --stat` so they
+  can confirm.
+- **Pushing to `main` publishes.** CI runs and, if green, the app deploys to GitHub Pages —
+  so a push is a release to real users, not just a backup. Only push when explicitly asked,
+  and never push work you haven't verified.
 
 ## Definition of done
 
-Implemented ✓ · invariants upheld ✓ · `npm test` + `npm run typecheck` green ✓ · verified in-browser ✓ ·
+Implemented ✓ · invariants upheld ✓ · `npm test` + `npm run typecheck` green ✓ · verified
+in-browser ✓ (and against the production build if it touches URLs/assets/markup) ✓ ·
 CHANGELOG updated (ROADMAP/CLAUDE if needed) ✓ · stage-scaled self-review reported ✓ ·
 commit command handed to the user ✓.
