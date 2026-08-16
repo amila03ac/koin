@@ -1,6 +1,11 @@
 # Keep the (dev-only) toolchain and CI actions current, so security advisories surface as
 # update PRs instead of silently aging. Koin ships zero runtime dependencies; this watches
 # the build/test tooling (Vite, Vitest, vite-plugin-pwa, …) and the workflow actions.
+#
+# `cooldown` deliberately delays adopting freshly published versions. Compromised releases from
+# npm supply-chain worms are typically detected and pulled within hours to a few days, so
+# waiting before upgrading means those versions are usually gone before we'd ever install them.
+# Security advisories still create PRs immediately — the cooldown applies to version updates.
 version: 2
 updates:
   - package-ecosystem: "npm"
@@ -8,7 +13,14 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+      semver-patch-days: 3
+      semver-minor-days: 7
+      semver-major-days: 30
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7

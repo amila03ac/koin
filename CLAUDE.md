@@ -271,6 +271,22 @@ The `.gitignore` already blocks real CSVs, exported/pre-restore backups, and mac
 tell the user: it needs a history scrub + force-push (don't just delete it in a new commit,
 which leaves it in history).
 
+### Dependency supply-chain policy (npm worms)
+Koin uses **npm** (there is no yarn/pnpm lockfile). Self-replicating npm worms run their payload
+from **dependency install scripts**, so:
+- **`.npmrc` sets `ignore-scripts=true`** — no dependency's preinstall/install/postinstall runs.
+  Verified safe: only `esbuild` ships one, and it works without it. **Don't remove this.** If a
+  new dependency truly needs its script, read the script, then install just that one with
+  `npm install <pkg> --foreground-scripts` and note why.
+- **Always `npm ci`** (strict lockfile), never `npm install` in CI. Commit `package-lock.json`.
+- **Dependabot has a `cooldown`** so freshly published versions aren't adopted immediately —
+  compromised releases are usually pulled within days. Don't bypass it by hand-bumping deps.
+- **Keep runtime dependencies at zero.** Everything in `package.json` is a devDependency; a
+  compromised dev tool can't reach users of the built site (but *can* reach this machine).
+- **Limits worth knowing:** `ignore-scripts` does **not** stop malicious code that executes when
+  a package is *imported* during `npm run build`/`test`. That's why CI uses least-privilege
+  `permissions: contents: read` and why new deps deserve real scrutiny.
+
 ### Commits & attribution
 - Commit with the repository's configured git identity (set in this repo's local git config,
   so no `--author` override is needed). A `Co-Authored-By: Claude …` trailer on Claude-made
