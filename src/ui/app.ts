@@ -133,8 +133,13 @@ function readFile(file: File, cb: (text: string) => void): void {
 
 // ---- chrome (toolbar) wiring -------------------------------------------
 function bindChrome(): void {
-  $("#btn-import")!.addEventListener("click", () =>
-    pickFile(".csv,text/csv", (f) => readFile(f, (txt) => importCsvText(txt, f.name))));
+  // Both the toolbar button and the empty-state button start the same import flow. (Bound in
+  // JS rather than an inline onclick= so the deployed Content-Security-Policy can forbid
+  // inline scripts outright — see the CSP in vite.config.ts.)
+  const startCsvImport = () =>
+    pickFile(".csv,text/csv", (f) => readFile(f, (txt) => importCsvText(txt, f.name)));
+  $("#btn-import")!.addEventListener("click", startCsvImport);
+  $("#btn-import-2")?.addEventListener("click", startCsvImport);
   $("#btn-add")!.addEventListener("click", () => openTxnModal());
   $("#btn-rules")!.addEventListener("click", openRulesModal);
   $("#btn-export")!.addEventListener("click", exportBackup);

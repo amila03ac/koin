@@ -1,0 +1,52 @@
+# Build the site and publish it to GitHub Pages.
+#
+# Kept separate from ci.yml so that workflow can stay least-privilege (contents: read) — only
+# this one gets the Pages/id-token permissions needed to publish. Requires Pages to be enabled
+# once in the repository: Settings → Pages → Source: "GitHub Actions".
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # allow a manual re-deploy from the Actions tab
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never run two deploys at once; let a newer commit supersede an in-flight one, but don't
+# cancel a run that is already publishing.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # .npmrc sets ignore-scripts=true, so no dependency lifecycle script runs here.
+      - run: npm ci
+      # Don't publish a broken build: typecheck and tests must pass first.
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

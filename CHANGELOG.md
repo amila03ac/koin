@@ -13,6 +13,10 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 ## [Unreleased]
 
 ### Added
+- **Koin is deployed to the web.** A GitHub Actions workflow builds the app and publishes it to
+  GitHub Pages on every push to `main` (typecheck and tests must pass first). Being a hosted
+  copy changes nothing about privacy: there's still no server or account, and your data stays
+  in your own browser.
 - **Toasts with an action (e.g. the "Undo" after learning a category) now have a close (×)
   button**, so you can dismiss the message immediately — keeping the change — instead of
   waiting for it to fade or being nudged toward Undo.
@@ -70,6 +74,10 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
   edit against every transaction.
 
 ### Fixed
+- **"Load the sample data" now works in a built/deployed copy.** The sample CSVs live in
+  `data/`, which Vite doesn't copy into the build, so the button silently failed anywhere
+  outside `npm run dev`. They're now emitted into the build (and precached, so the sample
+  loads offline too).
 - **A failed save no longer disappears silently.** If the browser's storage is full
   (`QuotaExceededError`), Koin now shows a toast prompting you to export a backup, instead of
   logging to the console while the UI pretends the write succeeded.
@@ -83,6 +91,11 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
   instead of quietly operating under a much smaller storage limit.
 
 ### Security
+- **The deployed app now ships a Content-Security-Policy.** The browser is told to run only
+  Koin's own scripts (no inline scripts, no `eval`) and to allow network connections only back
+  to Koin's own origin — so even if hostile content reached the page, it couldn't load an
+  attacker's code or send your financial data anywhere. Applied to production builds only, so
+  local development is unaffected.
 - Removed the `html`/`innerHTML` escape hatch from the `h()` DOM helper (it had no callers) so
   a future change can't accidentally introduce XSS; all text goes through escaped text nodes.
 - **Guard against a rule regex freezing the page (ReDoS).** A pathological pattern like `(a+)+`

@@ -125,12 +125,24 @@ land (see "Tracking progress" above).
       /`scope` are left to derive from Vite's `base`, so Step 6's sub-path deploy needs no icon
       rework. Verified: build emits `sw.js`/`manifest.webmanifest`/`registerSW.js`; `npm run
       preview` serves them with correct content-types and the SW precaches `index.html`.
-- [ ] **6. Deploy** to GitHub Pages via Actions (build → publish `dist/`). Ship the **CSP** with
-      this step: GitHub Pages can't set HTTP headers, so it must be a `<meta http-equiv>`
-      injected at **build** time only (Vite's dev server needs `eval` for HMR, so a strict
-      policy must not live in the source `index.html`). Koin makes no outbound requests, so the
-      policy can be very tight (`connect-src 'none'`); `style-src` needs `'unsafe-inline'` for
-      the inline `style="…"` attributes `h()` emits, unless those move to classes first.
+- [x] **6. Deploy** to GitHub Pages via Actions (build → publish `dist/`). — done, with the
+      **CSP** shipped alongside it. `.github/workflows/deploy.yml` builds (typecheck + tests
+      gate it) and publishes `dist/`; `ci.yml` stays least-privilege since only the deploy
+      workflow holds `pages: write`/`id-token: write`. **Requires a one-time repo setting:**
+      Settings → Pages → Source: "GitHub Actions" (and a public repo on a free plan).
+      Notes worth keeping:
+      - `base` is `/koin/` for the sub-path project site. `command` is `"serve"` for **both**
+        dev and `vite preview`, so the config also checks `isPreview` — otherwise previewing
+        the build 404s every asset. Dev alone stays at `/`.
+      - CSP is injected as a `<meta http-equiv>` by a tiny build-only plugin in
+        `vite.config.ts` (Pages cannot set HTTP headers; a strict policy must not reach
+        `npm run dev`, whose HMR needs `eval`). Two deliberate loosenings, both verified
+        necessary: `connect-src 'self'` (**not** `'none'` — the sample-CSV fetch needs it) and
+        `style-src 'unsafe-inline'` (`h()` emits `style="…"`). `frame-ancestors` is omitted
+        because it is ignored in a meta CSP. Scripts stay strict (`'self'`, no inline) — an
+        inline `onclick` in `index.html` was moved into `app.ts` to allow that.
+      - Verified on the real build: no CSP violations, sample load, charts, blob-URL backup
+        download, and a service worker active at scope `/koin/`.
 - [ ] **7. OSS hygiene:** CI runs Vitest on every PR; add `LICENSE` (MIT), `CONTRIBUTING.md`,
       issue/PR templates. → This is the **Stage 0 → Stage 1** transition.
   - [ ] **Cut a `0.7.0` release.** `package.json` is already at 0.7.0 but everything since
