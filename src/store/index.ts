@@ -10,8 +10,8 @@
 // their dashboard without re-importing. Method names/return shapes are identical for both
 // backends, so the rest of Koin never knows or cares which is active.
 //
-// (Pre-Step-4 a third "file" backend talked to a local Node helper at ~/.koin/koin-data.json;
-// that helper — server.cjs — is retired now that Vite serves the app.)
+// (An earlier "file" backend talked to a local Node helper; it was retired once Vite served
+// the app, leaving these two browser backends.)
 import type { Category, Override, RuleSet, Transaction } from "../core/types";
 import { idbAvailable, idbGet, idbSet, idbSetMany, idbDel, idbClear } from "./idb";
 

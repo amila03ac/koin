@@ -88,12 +88,10 @@ npm run preview`. The SW precaches the app shell; `registerType: "autoUpdate"` m
 build's SW activates on the next load. Icons live in `public/`; `start_url`/`scope` derive from
 Vite's `base` (so a sub-path deploy needs no icon changes).
 
-> **`~/.koin/koin-data.json` may still hold the user's real data from the retired file
-> helper — never let tooling overwrite it.** The `node server.cjs` shared-file backend was
-> removed in Step 4 (Vite serves the app now), but the user's exported data file can remain on
-> disk, so the protective `.claude` safeguards stay: `.claude/settings.json` deny-rules + the
-> PreToolUse hook (`.claude/hooks/guard-koin-data.sh`) still block tooling from writing
-> `~/.koin`. **Export backup** is the only fully durable copy.
+> **Never let tooling write to the local Koin data directory.** A maintainer's machine may hold
+> real financial data in a directory outside this repo. The `.claude` safeguards that block it
+> (deny-rules in `.claude/settings.json` + the `guard-koin-data.sh` PreToolUse hook) must stay —
+> don't "tidy them away". **Export backup** remains the only fully durable copy of user data.
 
 ```
 Koin/

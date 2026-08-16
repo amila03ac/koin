@@ -125,9 +125,19 @@ land (see "Tracking progress" above).
       /`scope` are left to derive from Vite's `base`, so Step 6's sub-path deploy needs no icon
       rework. Verified: build emits `sw.js`/`manifest.webmanifest`/`registerSW.js`; `npm run
       preview` serves them with correct content-types and the SW precaches `index.html`.
-- [ ] **6. Deploy** to GitHub Pages via Actions (build → publish `dist/`).
+- [ ] **6. Deploy** to GitHub Pages via Actions (build → publish `dist/`). Ship the **CSP** with
+      this step: GitHub Pages can't set HTTP headers, so it must be a `<meta http-equiv>`
+      injected at **build** time only (Vite's dev server needs `eval` for HMR, so a strict
+      policy must not live in the source `index.html`). Koin makes no outbound requests, so the
+      policy can be very tight (`connect-src 'none'`); `style-src` needs `'unsafe-inline'` for
+      the inline `style="…"` attributes `h()` emits, unless those move to classes first.
 - [ ] **7. OSS hygiene:** CI runs Vitest on every PR; add `LICENSE` (MIT), `CONTRIBUTING.md`,
       issue/PR templates. → This is the **Stage 0 → Stage 1** transition.
+  - [ ] **Cut a `0.7.0` release.** `package.json` is already at 0.7.0 but everything since
+        0.6.0 sits under `[Unreleased]` in the changelog and **no git tags exist at all**. Move
+        that block under a `## [0.7.0] — <date>` heading, `git tag v0.7.0 && git push --tags`,
+        and create the GitHub Release. Only *then* re-add the Keep-a-Changelog link definitions
+        at the foot of `CHANGELOG.md` (they were removed because every one 404'd without tags).
 
 **`server.cjs` retired (Step 4).** Its only job was cross-browser local persistence via
 `~/.koin` (with shrink-guard, dirty-beacon, and the PreToolUse hook protecting it). Vite's dev

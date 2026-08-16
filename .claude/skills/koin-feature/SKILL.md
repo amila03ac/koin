@@ -73,12 +73,10 @@ and offer the adjustment. A good outcome is sometimes a reshaped or declined fea
 - Drive the real UI in the browser via `npm run dev` (http://localhost:4178) and confirm the
   feature works end-to-end, including persistence across reload and at least one edge case.
   Don't rely on screenshots alone — assert DOM/state via eval.
-- **NEVER let testing touch the user's real data.** The Vite dev server uses **localStorage**
-  (per-browser), so it doesn't touch `~/.koin`. But `~/.koin/koin-data.json` may still hold
-  the user's live data from the old `server.cjs` mode — never point tooling at it. If you run
-  `server.cjs`, set `KOIN_DATA_DIR=/tmp/koin-...` so writes land in a throwaway sandbox
-  (`.claude/settings.json` sets this for Claude-launched servers; a PreToolUse hook also
-  blocks shell writes to `~/.koin` — don't rely on it, be deliberate).
+- **NEVER let testing touch real user data.** The dev server stores data per-browser, so it
+  can't reach the local Koin data directory — but a maintainer's machine may hold real
+  financial data there, so never point tooling at it. A PreToolUse hook blocks writes to it;
+  don't rely on the hook, be deliberate. (See CLAUDE.md → durability.)
 
 ## 5. Document — the CHANGELOG is mandatory, not optional
 

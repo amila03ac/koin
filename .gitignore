@@ -6,12 +6,23 @@ data/*.csv
 # App backups (real data): "Export backup" downloads and the pre-restore safety snapshot
 koin-backup-*.json
 koin-before-restore-*.json
-# The live data file lives in ~/.koin (outside the repo) — listed here as a reminder.
-# ~/.koin/koin-data.json
+# (Real data also lives outside the repo, in local browser storage / a chosen backup file.)
+
+# --- Secrets (defensive: this repo has none, and must never gain any) ---
+.env
+.env.*
+*.pem
+*.key
+*.p12
+id_rsa*
+id_ed25519*
 
 # --- Machine-specific tooling ---
 # launch.json contains absolute paths; keep it local.
 .claude/launch.json
+# Per-machine Claude Code settings/state (the shared settings.json IS committed).
+.claude/settings.local.json
+.claude/state/
 
 # --- OS / editor cruft ---
 .DS_Store
