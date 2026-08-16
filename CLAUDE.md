@@ -88,6 +88,31 @@ npm run preview`. The SW precaches the app shell; `registerType: "autoUpdate"` m
 build's SW activates on the next load. Icons live in `public/`; `start_url`/`scope` derive from
 Vite's `base` (so a sub-path deploy needs no icon changes).
 
+**Deployed, and running under a strict CSP — beware: `npm run dev` does not enforce it.**
+Pushing to `main` runs CI and, if green, publishes to GitHub Pages
+(https://amila03ac.github.io/koin/) via `.github/workflows/deploy.yml` — so **a push is a
+release to real users**. Two build-time facts follow from that, both configured in
+`vite.config.ts`:
+
+- **`base` is `/koin/`** for the project sub-path. It applies to `build` **and** to
+  `npm run preview` — `command` is `"serve"` for preview just as for dev, so the config also
+  checks `isPreview`; without that, previewing the build 404s every asset. Dev alone stays at
+  `/`.
+- **A `<meta http-equiv="Content-Security-Policy">` is injected at build time only** (GitHub
+  Pages can't set HTTP headers, and a strict policy would break dev's HMR, which needs `eval`).
+  So the following are fine in dev and **broken in production** — check the policy before
+  adding any of them:
+  - **No inline scripts, no inline event handlers, no `eval`.** Bind events in TypeScript.
+    (An `onclick=` in `index.html` had to move into `app.ts` for this.)
+  - **No external requests** — no CDN, font, image, or API host; `connect-src` is `'self'`.
+  - **Runtime assets must actually be emitted into `dist/`.** Vite copies only `public/`; the
+    sample CSVs in `data/` are emitted by a small plugin in `vite.config.ts`. A missing one
+    404s silently in production while working perfectly in dev.
+  - Inline `style="…"` attributes *are* allowed (`style-src` permits them), so charts are fine.
+
+Verify anything touching URLs, fetches, runtime assets, the service worker, or markup against
+`npm run build && npm run preview`, not just the dev server.
+
 > **Never let tooling write to the local Koin data directory.** A maintainer's machine may hold
 > real financial data in a directory outside this repo. The `.claude` safeguards that block it
 > (deny-rules in `.claude/settings.json` + the `guard-koin-data.sh` PreToolUse hook) must stay —
@@ -96,7 +121,7 @@ Vite's `base` (so a sub-path deploy needs no icon changes).
 ```
 Koin/
   index.html            Dashboard shell; loads src/main.ts (Vite entry)
-  vite.config.ts        Vite + Vitest config; vite-plugin-pwa (manifest + service worker)
+  vite.config.ts        Vite + Vitest config; PWA (manifest + SW), build-time CSP, /koin/ base
   tsconfig.json         TypeScript config
   public/               Static assets copied as-is: PWA icons (◎ coin) + favicon.svg
   css/style.css         All styling
