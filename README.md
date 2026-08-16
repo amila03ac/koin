@@ -1,82 +1,106 @@
 # Koin
 
-A personal finance dashboard that turns your bank-statement CSVs into spending
-insights — runs entirely in your browser, no install, no account, no data leaves
-your machine. Yearly / monthly / weekly views, auto-categorization, recurring
-detection, and editable transactions.
+A personal finance dashboard that turns bank-statement CSVs into spending insights. It runs
+entirely in your browser — **no account, no server, and no data leaves your machine.** Yearly /
+monthly / weekly views, auto-categorization, recurring-payment detection, and fully editable
+transactions.
 
-> **Requirements:** **Node.js 18+** (`node --version` to check). Koin now uses a small build
-> step (Vite); see the [architecture plan](docs/ARCHITECTURE.md) for where it's headed.
+> **Status:** a working single-user app, and an early-stage personal project. It is local-first
+> by design: there is no cloud sync, no multi-user support, and no authentication. Data lives in
+> the browser you use it in, so **keeping a backup is on you** (Koin makes that easy — see
+> [Your data](#your-data)). See [ROADMAP.md](ROADMAP.md) for direction and
+> [CHANGELOG.md](CHANGELOG.md) for what has shipped.
 
 ## Quick start
 
+**Requirements:** Node.js 20 or newer (Node 24 LTS recommended). Check with `node --version`.
+
 ```bash
-cd Koin
-npm install
+npm ci
 npm run dev
-# then open the printed URL: http://localhost:4178
+# then open http://localhost:4178
 ```
 
-Click **Import CSV** and pick your statement (e.g. `data/Transactions.sample.csv`). To make a
-production build, run `npm run build` (outputs `dist/`) and preview it with `npm run preview`.
-
-### Install it / use it offline
-
-Koin is a **PWA**: from a built/deployed copy (`npm run build && npm run preview`, or once it's
-on the web) your browser offers an **Install** button — Koin then gets its own icon and window,
-and **works fully offline** after the first load (the app is cached; your data is already
-local). Offline/install applies to the build, not `npm run dev`.
-
-### Where your data lives & persistence
-
-Your data is saved in **that browser's** storage (**IndexedDB**, with localStorage as an
-automatic fallback) and persists across reloads. It's per-browser for now; cross-device sync
-is the next milestone (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)). **⋯ → Export backup**
-/ **Restore backup** moves data between browsers or machines. All persistence lives behind one
-storage adapter in `src/store/index.ts` — the seam for a cloud backend later.
-
-> **Upgrading from an older version?** Data once kept by the retired `node server.js` helper at
-> `~/.koin/koin-data.json` won't load automatically — **Import** your CSV again (or **Restore**
-> a backup). Data already in your browser's localStorage is copied into IndexedDB once,
-> automatically, the first time you open this version.
+Click **Import CSV** and pick a statement — or try the synthetic samples in `data/` first.
+For a production build: `npm run build` (outputs `dist/`), preview it with `npm run preview`.
 
 ## Using it
 
-- **Import a CSV** — expected columns: `Date, Description, Credit, Debit, Balance`.
-  Re-import overlapping months freely; Koin de-duplicates by a stable transaction id,
-  so your history just grows. Add a new statement at the start/end of each month.
-- **Switch views** — Year / Month / Week, with ‹ › to step and a dropdown to jump.
-- **Categories** — most transactions are auto-categorized. Change any one with its
-  dropdown; your choice sticks and survives re-imports.
-- **Add / edit / remove** — **＋ Transaction** adds a manual entry (cash, corrections,
-  expected bills). Manual ones are fully editable; bank rows can be re-categorized,
-  ignored, or deleted.
-- **Ignore internal transfers** — transfers between your own accounts shouldn't count as
-  spending. `Internal Transfer` rows are ignored automatically. To ignore others (e.g.
-  recurring family transfers), open **Rules** and add a pattern — no code needed.
-- **Insights** — category donut, spending trend, top merchants, biggest expenses, and
+- **Import a CSV.** Two bank layouts are auto-detected from the header row:
+  `Date, Description, Credit, Debit, Balance`, and a more detailed export
+  (`Transaction Date, Details, …, Debit, Credit, Balance, Original Description`). Dates are read
+  day-first — `31/03/2026`, or `03 Jun 2026` in the detailed layout — never US month-first.
+  Re-import overlapping months freely: Koin de-duplicates by a stable transaction id, so history
+  accumulates instead of doubling up.
+- **Switch views.** Year / Month / Week, with ‹ › to step and a dropdown to jump to a period.
+- **Categorize.** Most rows are categorized automatically. Change one with its dropdown:
+  - Categorizing a *previously uncategorized* merchant **learns a rule**, applying that category
+    across all history *and* future imports. The toast offers **Undo**.
+  - Editing an *already-categorized* row makes a one-off change to just that row.
+  - Learned rules are listed and editable under **Rules**, alongside a category manager for
+    adding your own categories, colours, and icons.
+- **Edit anything.** **＋ Transaction** adds a manual entry (cash, corrections, expected bills).
+  Imported bank rows can also be edited — date, merchant, amount, direction, category — and are
+  marked *edited*, with **Reset to imported values** to undo. Edits are stored separately from
+  the imported data, so re-importing never overwrites your work.
+- **Ignore internal transfers.** Money moved between your own accounts isn't spending.
+  `Internal Transfer` rows are ignored automatically; add your own patterns under **Rules** to
+  exclude others (for example, a recurring person-to-person payment) — no code needed.
+- **Insights.** Category donut, spending trend, top merchants, biggest expenses, and
   recurring/subscription detection.
-- **Backup** — **⋯ → Export backup** saves a JSON of everything; **Restore backup**
-  loads it back (e.g. on a new machine or browser). **Reset all data** wipes local data.
 
-> `data/Transactions.sample.csv` is **synthetic demo data** (fake merchants and people) so
-> you can try Koin safely. Replace it with your own statement export when you're ready.
+> The files in `data/` are **synthetic demo data** (invented merchants and people), safe to
+> experiment with. Real statements are gitignored and must never be committed.
+
+## Your data
+
+Everything is stored in **that browser's** storage (IndexedDB, falling back to localStorage) and
+persists across reloads. Nothing is uploaded anywhere. The trade-off is that browser storage can
+be cleared — by the browser under pressure, by privacy settings, or by you — so Koin includes
+several safeguards, all under the **⋯** menu:
+
+- **Export backup / Restore backup** — a JSON file of everything, for moving between browsers or
+  machines. Restoring **replaces** your current data: it asks for confirmation, downloads a
+  safety copy of what's there first, and is applied atomically, so a failed restore can't leave
+  you half-updated.
+- **Link backup file** *(Chromium browsers)* — pick a file on disk once, and Koin rewrites your
+  full data to it after every change. That file is a durable, browser-independent copy;
+  it's interchangeable with a manual export.
+- **Storage protection** — Koin asks the browser to make its storage persistent and shows the
+  result in the menu, along with a reminder if you haven't backed up in a while.
+- **Reset all data** — wipes local data (after confirmation).
+
+All persistence goes through a single storage adapter (`src/store/index.ts`) — the seam where a
+cloud backend could be added later without touching the UI.
+
+## Install it / use it offline
+
+Koin is a **PWA**. From a built or deployed copy (`npm run build && npm run preview`) your
+browser offers an **Install** option: Koin gets its own icon and window and **works fully
+offline** after the first load. This applies to the build, not `npm run dev`.
 
 ## How it's built
 
-Vanilla JS bundled with **Vite**, with **TypeScript** being adopted module-by-module (the
-pure `parser`/`rules`/`insights` logic ports first). All persistence goes through one
-swappable storage adapter (`src/store/index.ts`, IndexedDB today) so a cloud backend can be
-slotted in later without touching the UI. It's a **PWA** (installable + offline) via
-`vite-plugin-pwa` — manifest and service worker are generated at build time. See [CLAUDE.md](CLAUDE.md) for the
-current architecture and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the evolution plan.
+Fully typed **TypeScript**, bundled with **Vite**, with **no UI framework and zero runtime
+dependencies**. The code separates into a pure core (`src/core/` — CSV parsing, rules,
+insights; no DOM, no storage), the storage adapter (`src/store/`), and the DOM layer
+(`src/ui/`). Offline support comes from `vite-plugin-pwa`, which generates the manifest and
+service worker at build time.
 
-## Tests
+See [CLAUDE.md](CLAUDE.md) for the architecture in detail and
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the longer-term plan.
+
+## Development
 
 ```bash
-npm test          # Vitest: typed unit tests for the core + a jsdom boot smoke test
+npm test          # Vitest: unit tests for the pure core, storage, and UI + a jsdom boot test
 npm run typecheck # tsc --noEmit
+npm run build     # production build into dist/
 ```
+
+A note on dependencies: everything is a devDependency, and `.npmrc` sets `ignore-scripts=true`
+so no dependency's install scripts run — a deliberate guard against npm supply-chain attacks.
+Use `npm ci` (not `npm install`) so installs come strictly from the committed lockfile.
 
 ## License
 
