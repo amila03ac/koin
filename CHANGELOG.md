@@ -1,11 +1,11 @@
 # Changelog
 
-All notable changes to Koin are documented here.
+This file records every notable change to Koin.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-While Koin is a local proof-of-concept, versions stay in the `0.x` range and a minor
-bump (`0.N.0`) marks a user-visible feature increment.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
+follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While Koin is pre-1.0,
+versions stay in the `0.x` range and a minor bump (`0.N.0`) marks a user-visible feature
+increment.
 
 This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *future*
 (what's planned). Keep them in sync: when a roadmap item ships, move it here.
@@ -16,15 +16,14 @@ _Nothing yet._
 
 ## [0.7.0] — 2026-08-16
 
-The release that took Koin from a local script to a published app: it's now **hosted,
-installable, and open source**, with a lot of work on making sure your data can't quietly go
-missing.
+The release that took Koin from a local-only app to a published one: it's now **hosted,
+installable, and open source**, with a lot of work to stop your data going missing quietly.
 
 ### Added
 - **Koin is deployed to the web.** A GitHub Actions workflow builds the app and publishes it to
-  GitHub Pages on every push to `main` (typecheck and tests must pass first). Being a hosted
-  copy changes nothing about privacy: there's still no server or account, and your data stays
-  in your own browser.
+  GitHub Pages on every push to `main` (typecheck and tests must pass first). Being hosted
+  changes nothing about privacy: there's still no server or account, and your data stays in
+  your browser.
 - **Toasts with an action (e.g. the "Undo" after learning a category) now have a close (×)
   button**, so you can dismiss the message immediately — keeping the change — instead of
   waiting for it to fade or being nudged toward Undo.
@@ -40,8 +39,8 @@ missing.
 - **Safer backup restore, and a heads-up about your storage.** Restoring a backup now (1)
   **downloads a safety copy** of your current data and **asks you to confirm** before it
   replaces anything — one mis-click can no longer wipe your data with no undo; (2) is
-  **atomic and honest** — the whole dataset is written in one all-or-nothing step and Koin
-  only reports "restored" once it has genuinely saved (a mid-restore failure, e.g. full
+  **atomic and honest** — Koin writes the whole dataset in one all-or-nothing step and only
+  reports "restored" once it has genuinely saved (a mid-restore failure, e.g. full
   storage, now rolls back and tells you, instead of reloading onto half-saved data). The ⋯
   menu shows whether your browser storage is **protected** (persistent) or **best-effort**
   (can be evicted — Koin asks the browser to make it persistent on startup). If you have data
@@ -52,9 +51,9 @@ missing.
   service worker caches the app; your data is already local). Adds a web manifest, a Workbox
   service worker (`vite-plugin-pwa`), and a ◎-coin icon set. Offline/install applies to the
   production build, not `npm run dev`. _(Try it with `npm run build && npm run preview`.)_
-- **Backup restore now validates the file's structure** before importing, so a corrupt or
-  hand-edited backup (e.g. `transactions` that isn't a list) is rejected with a clear message
-  instead of silently poisoning your data. Matters now that backups can travel between people.
+- **Backup restore now validates the file's structure** before importing: Koin rejects a corrupt
+  or hand-edited backup (e.g. `transactions` that isn't a list) with a clear message instead of
+  silently poisoning your data. Matters now that backups can travel between people.
 - **Continuous integration** (GitHub Actions): typecheck + tests + build run on every push/PR.
 
 ### Changed
@@ -67,7 +66,7 @@ missing.
 - **Storage moved to IndexedDB.** Phase 1 Step 4: Koin now persists to the browser's
   IndexedDB instead of localStorage, lifting the old ~5–10 MB cap to hundreds of MB / GBs —
   room for years of statements — and writing off the main thread. localStorage stays as an
-  automatic fallback (very old browsers, some private-browsing modes). **Your existing data
+  automatic fallback (old browsers, some private-browsing modes). **Your existing data
   is copied over automatically the first time you open this version** — no re-import needed.
   Implemented as a ~40-line native KV wrapper (`src/store/idb.ts`), **no new dependencies**;
   the `store` seam means no UI/core code changed. The retired `node server.cjs` shared-file

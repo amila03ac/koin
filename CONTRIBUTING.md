@@ -1,11 +1,11 @@
 # Contributing to Koin
 
-Thanks for taking a look. Koin is a small, local-first personal finance dashboard, and it's
-deliberately kept simple: **vanilla TypeScript, no UI framework, and zero runtime
-dependencies.** Contributions are welcome as long as they keep it that way.
+Thanks for taking a look. Koin is a small, local-first personal finance dashboard, and
+deliberately simple: **vanilla TypeScript, no UI framework, and zero runtime dependencies.**
+Contributions are welcome as long as they keep it that way.
 
 Because Koin handles people's financial records, two things matter more than anything else:
-**the money maths must be right**, and **user data must never be silently lost.**
+**the money maths must be right**, and **Koin must never silently lose your data.**
 
 ## Getting set up
 
@@ -37,20 +37,20 @@ src/store/  The only module that touches persistence (IndexedDB, localStorage fa
 src/ui/     The DOM layer. app.ts is the composition root.
 ```
 
-Three rules keep this honest, and a PR that breaks one will be asked to change:
+Three rules keep this honest — a PR that breaks one will need changing:
 
 1. **All persistence goes through `src/store/index.ts`.** Nothing else reads or writes storage.
    That single seam is what makes a future cloud backend a one-module job.
 2. **`src/core/` stays pure** — no DOM, no storage — so it stays testable and portable.
-3. **Money out is negative**, internal transfers are excluded from spending, and transactions
-   are bucketed by *effective* date (the date the purchase happened, not when it posted).
+3. **Money out is negative.** Koin excludes internal transfers from spending, and buckets
+   transactions by *effective* date (the date the purchase happened, not when it posted).
    Never compare currency amounts with float equality.
 
 Feature modules trigger re-renders through `src/ui/render-bus.ts` rather than importing
 `app.ts`, which keeps the dependency graph one-way. `CLAUDE.md` has the fuller architecture
 tour, and `docs/ARCHITECTURE.md` covers where the project is heading.
 
-## Adding support for another bank's CSV
+## Adding another bank's CSV
 
 This is the most likely thing you'll want to add, and it shouldn't need a new parser. Each
 layout is a **format profile** in `src/core/parser.ts` (`FORMATS`): a mapping from Koin's
@@ -69,16 +69,16 @@ positive numbers.
 - Add tests for new logic in `src/core/` — it's pure, so it's easy to test.
 - **Update `CHANGELOG.md`** under `[Unreleased]` for anything user-visible, following
   [Keep a Changelog](https://keepachangelog.com).
-- Explain non-obvious decisions in comments. Clarity is valued over cleverness here.
+- Explain non-obvious decisions in comments. Clarity beats cleverness here.
 
 ### Please don't include
 
 - Real financial data, personal information, or credentials of any kind.
-- New **runtime** dependencies. Everything in `package.json` is a devDependency, which is what
-  keeps the shipped app dependency-free. Dev tooling additions need a good reason.
+- New **runtime** dependencies. Everything in `package.json` is a devDependency, which keeps the
+  shipped app dependency-free. Dev tooling additions need a good reason.
 - Machine-specific paths or local setup notes in tracked files.
 
-## A note on dependencies
+## Dependencies
 
 `.npmrc` sets `ignore-scripts=true`, so no dependency's install scripts run — a deliberate
 guard against npm supply-chain attacks. If a package you add genuinely needs its install
