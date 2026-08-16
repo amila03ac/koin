@@ -8,6 +8,12 @@ koin-backup-*.json
 koin-before-restore-*.json
 # (Real data also lives outside the repo, in local browser storage / a chosen backup file.)
 
+# --- Internal review notes (kept locally, not published) ---
+# Point-in-time architecture/security reviews. Their outcomes are recorded in CHANGELOG.md
+# and docs/ARCHITECTURE.md; the raw notes read as a list of current weaknesses long after
+# they're fixed, so they stay out of the public repo.
+docs/REVIEW-*.md
+
 # --- Secrets (defensive: this repo has none, and must never gain any) ---
 .env
 .env.*
