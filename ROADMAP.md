@@ -21,12 +21,13 @@ product is used. Items are grouped by **horizon** (Now / Next / Later), not hard
 
 ## Project stages
 
-Koin's engineering bar scales with its stage. We're at **Stage 0**.
+Koin's engineering bar scales with its stage. We're at **Stage 1** (since v0.7.0 — the app is
+open source and hosted on GitHub Pages).
 
-- **Stage 0 — Local POC (current).** Single user, single browser, localStorage. Optimize
+- **Stage 0 — Local POC (complete).** Single user, single browser, localStorage. Optimized
   for iteration speed and correctness of the money math. Light-touch process.
-- **Stage 1 — Shareable / hosted.** Runs somewhere others can open it; data may sync or be
-  backed up server-side. Raises the bar: input validation, error states, data-loss safety,
+- **Stage 1 — Shareable / hosted (current).** Runs somewhere others can open it; data may sync
+  or be backed up server-side. Raises the bar: input validation, error states, data-loss safety,
   a real storage backend, basic analytics of failures.
 - **Stage 2 — Multi-user / product.** Accounts, auth, privacy, migrations, observability,
   performance budgets, security review. Full engineering rigor.

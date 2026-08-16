@@ -1,0 +1,65 @@
+name: Bug report
+description: Something in Koin doesn't work as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Please don't paste real bank data** — redact or invent any
+        transaction rows you include. For security issues, use private vulnerability reporting
+        instead of a public issue.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what did you get instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Import a CSV with …
+        2. Switch to the Month view
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: sample-row
+    attributes:
+      label: Sample CSV row (invented or redacted)
+      description: >
+        If this involves importing, categorizing, or dates, a single row that reproduces it
+        helps enormously. Replace real merchants, amounts, and account numbers with fake ones.
+      render: text
+
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where were you running Koin?
+      options:
+        - The hosted site (amila03ac.github.io/koin)
+        - Installed as an app (PWA)
+        - Locally with npm run dev
+        - Locally with npm run build + preview
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: e.g. Chrome 141, Firefox 145, Safari 26
+    validations:
+      required: true
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors
+      description: Any errors in the browser console (F12 → Console).
+      render: shell

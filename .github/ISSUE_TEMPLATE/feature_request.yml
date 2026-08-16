@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest an improvement to Koin
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a look at [ROADMAP.md](../blob/main/ROADMAP.md) first — it may already be planned.
+        Koin's guiding question is *"where did my money go?"*, and it stays local-first with no
+        UI framework and zero runtime dependencies.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation you're in, not just the feature you want.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like Koin to do?
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: fit
+    attributes:
+      label: Does it fit Koin's constraints?
+      options:
+        - label: It works offline / local-first (no server required)
+        - label: It doesn't need a new runtime dependency
+        - label: It helps answer "where did my money go?"

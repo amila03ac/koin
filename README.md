@@ -1,9 +1,16 @@
 # Koin
 
+[![CI](https://github.com/amila03ac/koin/actions/workflows/ci.yml/badge.svg)](https://github.com/amila03ac/koin/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A personal finance dashboard that turns bank-statement CSVs into spending insights. It runs
 entirely in your browser — **no account, no server, and no data leaves your machine.** Yearly /
 monthly / weekly views, auto-categorization, recurring-payment detection, and fully editable
 transactions.
+
+**▶ Try it: [amila03ac.github.io/koin](https://amila03ac.github.io/koin/)** — click *Load the
+sample data* to explore with synthetic transactions. Nothing you import is uploaded anywhere;
+it stays in your own browser, and you can install it as an offline app.
 
 > **Status:** a working single-user app, and an early-stage personal project. It is local-first
 > by design: there is no cloud sync, no multi-user support, and no authentication. Data lives in
@@ -101,6 +108,14 @@ npm run build     # production build into dist/
 A note on dependencies: everything is a devDependency, and `.npmrc` sets `ignore-scripts=true`
 so no dependency's install scripts run — a deliberate guard against npm supply-chain attacks.
 Use `npm ci` (not `npm install`) so installs come strictly from the committed lockfile.
+
+Pushing to `main` runs CI and, if it passes, deploys to GitHub Pages automatically.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) — it covers the setup, the three architectural rules
+worth knowing, and how to add support for another bank's CSV layout (usually a small "format
+profile", not a new parser). Please never include real financial data in an issue or PR.
 
 ## License
 

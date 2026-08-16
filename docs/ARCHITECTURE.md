@@ -61,7 +61,7 @@ koin/
   .github/workflows/ci.yml
 ```
 
-## Phase 1 — "real codebase," still local-first  (status: in progress)
+## Phase 1 — "real codebase," still local-first  ✅ done (2026-08-16, v0.7.0)
 
 Each step is a small, single-session task. **Keep the test suite green after every step**,
 and land each as its own commit/PR so it's reviewable and revertible. Tick steps off as they
@@ -143,8 +143,13 @@ land (see "Tracking progress" above).
         inline `onclick` in `index.html` was moved into `app.ts` to allow that.
       - Verified on the real build: no CSP violations, sample load, charts, blob-URL backup
         download, and a service worker active at scope `/koin/`.
-- [ ] **7. OSS hygiene:** CI runs Vitest on every PR; add `LICENSE` (MIT), `CONTRIBUTING.md`,
-      issue/PR templates. → This is the **Stage 0 → Stage 1** transition.
+- [x] **7. OSS hygiene:** CI runs Vitest on every PR; add `LICENSE` (MIT), `CONTRIBUTING.md`,
+      issue/PR templates. → This is the **Stage 0 → Stage 1** transition. — done: `LICENSE`
+      (MIT) and CI were already in place; added `CONTRIBUTING.md` (setup, the three
+      architectural rules, and how to add a bank's CSV via a format profile), issue forms
+      (bug/feature) with a security contact link, and a PR template whose checklist covers the
+      money/date/storage invariants. README gained the live link, a CI badge, and a
+      contributing section. **Koin is now at Stage 1.**
   - [ ] **Cut a `0.7.0` release.** `package.json` is already at 0.7.0 but everything since
         0.6.0 sits under `[Unreleased]` in the changelog and **no git tags exist at all**. Move
         that block under a `## [0.7.0] — <date>` heading, `git tag v0.7.0 && git push --tags`,

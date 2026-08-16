@@ -12,6 +12,14 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [0.7.0] — 2026-08-16
+
+The release that took Koin from a local script to a published app: it's now **hosted,
+installable, and open source**, with a lot of work on making sure your data can't quietly go
+missing.
+
 ### Added
 - **Koin is deployed to the web.** A GitHub Actions workflow builds the app and publishes it to
   GitHub Pages on every push to `main` (typecheck and tests must pass first). Being a hosted
@@ -260,3 +268,7 @@ Initial working dashboard (local proof-of-concept).
 - **Architecture**: static, no-build, dependency-free; single swappable storage adapter
   (`store.js`, localStorage) as the seam for a future database; pure logic modules
   (`parser`, `rules`, `insights`) with a headless Node test suite.
+
+<!-- Only tagged versions are linked. 0.1.0–0.6.0 predate tagging in this repo. -->
+[Unreleased]: https://github.com/amila03ac/koin/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/amila03ac/koin/releases/tag/v0.7.0
