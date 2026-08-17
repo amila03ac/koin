@@ -12,7 +12,23 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 
 ## [Unreleased]
 
-_Nothing yet._
+### Changed
+- **The period bar now stays put while you scroll.** The Year / Month / Week tabs, the ‹ ›
+  stepper and the period label stick just below the header, so you can always see which period
+  you're looking at — and step to another one — without scrolling back to the top. It doesn't
+  shift at all as you start scrolling: it already sits where it pins. On a phone the "jump to
+  period" dropdown is hidden to keep that bar to a single row; ‹ › still move between periods.
+- **Tooltips appear instantly.** Hover a donut segment, a trend bar, the small dot marking a
+  different posted date, or any icon button, and the explanation shows straight away instead of
+  after the browser's roughly one-second delay — and it's styled to match the app rather than
+  being a grey system box. Keyboard users get the same tooltips on focus, and icon-only buttons
+  now carry proper labels for screen readers.
+
+### Fixed
+- **The toolbar no longer overflows on a phone.** At narrow widths the buttons ran off the
+  screen — "Rules" and the ⋯ menu were unreachable — and their labels broke onto three lines.
+  Everything now fits on one row: the wordmark shrinks to its ◎ symbol and the buttons tighten
+  up, roughly halving the height the header and period bar take up.
 
 ## [0.7.0] — 2026-08-16
 

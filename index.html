@@ -13,7 +13,7 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><span class="brand-mark">◎</span> Koin</div>
+    <div class="brand"><span class="brand-mark">◎</span> <span class="brand-text">Koin</span></div>
     <div class="toolbar">
       <button id="btn-import" class="btn primary">＋ Import CSV</button>
       <button id="btn-add" class="btn">＋ Transaction</button>
@@ -58,10 +58,10 @@
         <button class="period-tab" data-period="week">Week</button>
       </div>
       <div class="period-nav">
-        <button id="nav-prev" class="icon-btn" title="Previous">‹</button>
+        <button id="nav-prev" class="icon-btn" data-tip="Previous" aria-label="Previous period">‹</button>
         <span id="period-label" class="period-label">—</span>
-        <button id="nav-next" class="icon-btn" title="Next">›</button>
-        <select id="period-jump" class="period-jump" title="Jump to period"></select>
+        <button id="nav-next" class="icon-btn" data-tip="Next" aria-label="Next period">›</button>
+        <select id="period-jump" class="period-jump" data-tip="Jump to period" aria-label="Jump to period"></select>
       </div>
     </div>
 
