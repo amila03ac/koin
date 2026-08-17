@@ -141,6 +141,7 @@ Koin/
       state.ts          Shared mutable app state + compose() (rules+overrides → effective)
       dom.ts            Tiny DOM helpers: h() element builder, $, money, fmtDate, todayIso, field
       toast.ts          Transient notification (with optional action button)
+      tooltip.ts        Instant styled tooltips for any [data-tip] element (replaces `title`)
       modal.ts          Overlay modal primitive (openModal)
       backup.ts         Export / restore (atomic, confirmed, safety-snapshot) / reset all data
       disk-backup.ts    Optional auto-backup to a linked HDD file (File System Access API; Chromium)

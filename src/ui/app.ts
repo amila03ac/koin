@@ -18,6 +18,7 @@ import { openRulesModal } from "./rules-editor";
 import { setRenderer } from "./render-bus";
 import { initStorageDurability } from "./storage-status";
 import { initDiskBackup, diskBackupActive } from "./disk-backup";
+import { initTooltips } from "./tooltip";
 
 // ---- bootstrap ----------------------------------------------------------
 async function init(): Promise<void> {
@@ -42,6 +43,8 @@ async function init(): Promise<void> {
   state.overrides = await store.getOverrides();
 
   bindChrome();
+  initTooltips();      // delegated, so re-rendered rows and chart segments need no re-wiring
+  trackTopbarHeight(); // feeds --topbar-h, which parks the sticky period bar under the header
   compose();
   state.anchor = latestDate() || todayIso();
   renderAll();
@@ -57,6 +60,23 @@ async function init(): Promise<void> {
   } else {
     maybeNudgeBackup();          // gentle reminder if it's been a while since the last export
   }
+}
+
+// The period bar sticks directly below the topbar, so it needs the topbar's *live* height —
+// which isn't a constant: the toolbar wraps onto a second line on narrow screens. Publish it as
+// a CSS variable and keep it current, so the two never overlap or leave a gap.
+function trackTopbarHeight(): void {
+  const bar = $(".topbar");
+  if (!bar) return;
+  const publish = () =>
+    document.documentElement.style.setProperty("--topbar-h", `${Math.round(bar.getBoundingClientRect().height)}px`);
+  publish();
+  // Both, deliberately: a viewport change is what usually makes the toolbar wrap, and `resize`
+  // is dependable everywhere. ResizeObserver additionally catches the header changing height
+  // for reasons other than the viewport, but it isn't available (or reliable) in every
+  // environment, so it's an extra rather than the mechanism.
+  window.addEventListener("resize", publish);
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(publish).observe(bar);
 }
 
 // Since browser storage can be wiped and an exported backup is the only fully durable copy,
