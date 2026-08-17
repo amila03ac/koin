@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { $, fmtDate, h, money, todayIso } from "../src/ui/dom";
 import { toast } from "../src/ui/toast";
 import { openModal } from "../src/ui/modal";
+import { initTooltips, currentTipText } from "../src/ui/tooltip";
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -129,5 +130,53 @@ describe("toast()", () => {
   test("plain toasts have no close button", () => {
     toast("Saved");
     expect(document.querySelector("#toast .toast-close")).toBeNull();
+  });
+});
+
+describe("tooltip()", () => {
+  // Delegation is bound once; these tests share it, as the real app does.
+  initTooltips();
+
+  const hover = (el: Element, related: Element | null = null) =>
+    el.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, relatedTarget: related }));
+  const leave = (el: Element, related: Element | null = null) =>
+    el.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: related }));
+
+  test("shows the data-tip text on hover and hides on leave", () => {
+    const btn = h("button", { "data-tip": "Delete" }, "🗑");
+    document.body.appendChild(btn);
+    hover(btn);
+    expect(currentTipText()).toBe("Delete");
+    leave(btn);
+    expect(currentTipText()).toBeNull();
+  });
+
+  test("ignores elements without a data-tip", () => {
+    const plain = h("span", {}, "nothing here");
+    document.body.appendChild(plain);
+    hover(plain);
+    expect(currentTipText()).toBeNull();
+  });
+
+  test("works for SVG elements (the donut segments)", () => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const seg = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    seg.setAttribute("data-tip", "Groceries: $120 (11%)");
+    svg.appendChild(seg); document.body.appendChild(svg);
+    hover(seg);
+    expect(currentTipText()).toBe("Groceries: $120 (11%)");
+    leave(seg);
+  });
+
+  test("stays open when the pointer moves onto a child", () => {
+    const wrap = h("span", { "data-tip": "Posted 15 Aug 2026" }, [h("b", {}, "•")]);
+    document.body.appendChild(wrap);
+    const child = wrap.firstElementChild!;
+    hover(wrap);
+    expect(currentTipText()).toBe("Posted 15 Aug 2026");
+    leave(wrap, child); // moving to a child is still "inside"
+    expect(currentTipText()).toBe("Posted 15 Aug 2026");
+    leave(wrap, document.body);
+    expect(currentTipText()).toBeNull();
   });
 });

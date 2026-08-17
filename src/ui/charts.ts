@@ -49,8 +49,12 @@ export function donut(
         "stroke-dashoffset": -offset * C,
         transform: `rotate(-90 ${cx} ${cy})`,
       });
-      const t = el("title"); t.textContent = `${d.label}: ${money(d.value)} (${Math.round(frac * 100)}%)`;
-      seg.appendChild(t);
+      // `data-tip` drives ui/tooltip.ts (instant, styled). An SVG <title> child would show the
+      // browser's own tooltip after a ~1s delay, so we'd get both — aria-label keeps the
+      // segment described for screen readers without that.
+      const tip = `${d.label}: ${money(d.value)} (${Math.round(frac * 100)}%)`;
+      seg.setAttribute("data-tip", tip);
+      seg.setAttribute("aria-label", tip);
       svg.appendChild(seg);
       offset += frac;
     }
@@ -87,7 +91,7 @@ export function bars(
     bar.className = "koin-bar";
     bar.style.height = Math.round((d.total / max) * maxBar) + "px";
     bar.style.background = color;
-    bar.title = `${d.label}: ${money(d.total)}`;
+    bar.dataset.tip = `${d.label}: ${money(d.total)}`;
     const lab = document.createElement("span");
     lab.className = "koin-bar-label";
     lab.textContent = d.label;

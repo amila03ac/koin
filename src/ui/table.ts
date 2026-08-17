@@ -29,16 +29,18 @@ export function renderTable(): void {
     if (t.recurring && !t.ignored) badges.push(h("span", { class: "badge recur" }, "recurring"));
     if (t.ignored) badges.push(h("span", { class: "badge ignored" }, "ignored"));
     if (t.source === "manual") badges.push(h("span", { class: "badge manual" }, "manual"));
-    else if (hasFieldEdits(state.overrides[t.id])) badges.push(h("span", { class: "badge edited", title: "Edited from the imported value" }, "edited"));
+    else if (hasFieldEdits(state.overrides[t.id])) badges.push(h("span", { class: "badge edited", "data-tip": "Edited from the imported value" }, "edited"));
     const dateInfo = t.effectiveDate !== t.postedDate
-      ? h("span", { class: "date-eff", title: `Posted ${fmtDate(t.postedDate)}` }, "•")
+      ? h("span", { class: "date-eff", "data-tip": `Posted ${fmtDate(t.postedDate)}` }, "•")
       : null;
 
+    // These buttons show only an icon, so each carries an aria-label as well as the tooltip.
+    const ignoreLabel = t.ignored ? "Un-ignore" : "Ignore (exclude from totals)";
     const actions = h("div", { class: "row-actions" }, [
-      h("button", { class: "icon-btn", title: t.ignored ? "Un-ignore" : "Ignore (exclude from totals)",
+      h("button", { class: "icon-btn", "data-tip": ignoreLabel, "aria-label": ignoreLabel,
         onclick: () => toggleIgnore(t) }, t.ignored ? "↩" : "🚫"),
-      h("button", { class: "icon-btn", title: "Edit", onclick: () => openTxnModal(t) }, "✏️"),
-      h("button", { class: "icon-btn danger", title: "Delete", onclick: () => deleteTxn(t) }, "🗑"),
+      h("button", { class: "icon-btn", "data-tip": "Edit", "aria-label": "Edit", onclick: () => openTxnModal(t) }, "✏️"),
+      h("button", { class: "icon-btn danger", "data-tip": "Delete", "aria-label": "Delete", onclick: () => deleteTxn(t) }, "🗑"),
     ]);
 
     tbody.appendChild(h("tr", { class: t.ignored ? "is-ignored" : "" }, [

@@ -94,10 +94,10 @@ function renderLearnedList(container: HTMLElement): void {
   }
   for (const rule of learned) {
     container.appendChild(h("div", { class: "learned-row" }, [
-      h("span", { class: "learned-merchant", title: rule.match }, rule.match),
+      h("span", { class: "learned-merchant", "data-tip": rule.match }, rule.match),
       h("span", { class: "learned-arrow" }, "→"),
       learnedCategorySelect(rule),
-      h("button", { class: "icon-btn danger", title: "Delete this learned rule",
+      h("button", { class: "icon-btn danger", "data-tip": "Delete this learned rule", "aria-label": "Delete this learned rule",
         onclick: () => deleteLearnedRule(rule, container) }, "🗑"),
     ]));
   }
@@ -168,13 +168,13 @@ function renderCategoryList(container: HTMLElement): void {
 function categoryRow(cat: Category, container: HTMLElement): HTMLElement {
   // <input type=color> requires #rrggbb; fall back for shorthand/invalid stored colours.
   const colorVal = categories.isHexColor(cat.color) && cat.color.length === 7 ? cat.color : "#888888";
-  const color = h("input", { type: "color", class: "cat-color", value: colorVal, title: "Pick a colour" }) as HTMLInputElement;
+  const color = h("input", { type: "color", class: "cat-color", value: colorVal, "data-tip": "Pick a colour", "aria-label": "Pick a colour" }) as HTMLInputElement;
   color.addEventListener("input", async () => { cat.color = color.value; await persistCategories(); });
 
-  const icon = h("input", { type: "text", class: "cat-icon", maxlength: "4", value: cat.icon || "", title: "Emoji / icon", "aria-label": "Icon" }) as HTMLInputElement;
+  const icon = h("input", { type: "text", class: "cat-icon", maxlength: "4", value: cat.icon || "", "data-tip": "Emoji / icon", "aria-label": "Icon" }) as HTMLInputElement;
   icon.addEventListener("change", async () => { cat.icon = icon.value.trim(); await persistCategories(); });
 
-  const label = h("input", { type: "text", class: "cat-label", value: cat.label || "", title: "Display name", "aria-label": "Category name" }) as HTMLInputElement;
+  const label = h("input", { type: "text", class: "cat-label", value: cat.label || "", "data-tip": "Display name", "aria-label": "Category name" }) as HTMLInputElement;
   label.addEventListener("change", async () => {
     const v = label.value.trim();
     if (!v) { label.value = cat.label; return; } // names can't be blank — revert
@@ -190,7 +190,7 @@ function categoryRow(cat: Category, container: HTMLElement): HTMLElement {
 
   return h("div", { class: "category-row" }, [
     color, icon, label,
-    h("span", { class: "cat-key muted small", title: "Internal id (fixed — referenced by your transactions & rules)" }, cat.key),
+    h("span", { class: "cat-key muted small", "data-tip": "Internal id (fixed — referenced by your transactions & rules)" }, cat.key),
   ]);
 }
 
