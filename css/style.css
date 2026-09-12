@@ -187,6 +187,8 @@ button[data-tip], select[data-tip], input[data-tip] { cursor: pointer; }
 .badge.ignored { background: #e8e2d6; color: #6e6657; }
 .badge.manual { background: #e4e7d8; color: #5c6440; }
 .badge.edited { background: #efe2d6; color: #8a5a3c; }
+/* Icon only: the note text lives in the tooltip, so a long note never widens the table. */
+.badge.note { background: #e7e4da; padding: 1px 5px; letter-spacing: 0; cursor: help; }
 
 /* ---- empty state ---- */
 .empty { min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 24px; }

@@ -17,7 +17,8 @@ export function renderTable(): void {
   rows = rows.filter((t) => {
     if (!f.showIgnored && t.ignored) return false;
     if (f.category !== "all" && t.category !== f.category) return false;
-    if (f.text && !(t.description.toLowerCase().includes(f.text) || t.merchant.toLowerCase().includes(f.text))) return false;
+    if (f.text && !(t.description.toLowerCase().includes(f.text) || t.merchant.toLowerCase().includes(f.text)
+      || (t.note || "").toLowerCase().includes(f.text))) return false;
     return true;
   });
 
@@ -30,6 +31,9 @@ export function renderTable(): void {
     if (t.ignored) badges.push(h("span", { class: "badge ignored" }, "ignored"));
     if (t.source === "manual") badges.push(h("span", { class: "badge manual" }, "manual"));
     else if (hasFieldEdits(state.overrides[t.id])) badges.push(h("span", { class: "badge edited", "data-tip": "Edited from the imported value" }, "edited"));
+    // Icon only: a note can be long, and spelling it out on every row crowds the table and
+    // widens it. The text lives in the tooltip, and in aria-label so it is not hover-only.
+    if (t.note) badges.push(h("span", { class: "badge note", "data-tip": t.note, "aria-label": `Note: ${t.note}` }, "\u{1F4DD}"));
     const dateInfo = t.effectiveDate !== t.postedDate
       ? h("span", { class: "date-eff", "data-tip": `Posted ${fmtDate(t.postedDate)}` }, "•")
       : null;
@@ -204,10 +208,12 @@ export function openTxnModal(existing?: Transaction): void {
     amount: existing ? Math.abs(existing.amount) : "",
     direction: existing ? existing.direction : "debit",
     category: existing ? existing.category : "uncategorized",
+    note: existing?.note || "",
   };
   const inDate = h("input", { type: "date", value: f.date }) as HTMLInputElement;
   const inMerchant = h("input", { type: "text", value: f.merchant, placeholder: "e.g. Corner Cafe" }) as HTMLInputElement;
-  const inDesc = h("input", { type: "text", value: f.description, placeholder: isCsv ? "" : "optional note" }) as HTMLInputElement;
+  const inDesc = h("input", { type: "text", value: f.description, placeholder: isCsv ? "" : "e.g. Corner Cafe flat white" }) as HTMLInputElement;
+  const inNote = h("input", { type: "text", value: f.note, placeholder: "why you changed this, e.g. split: gift moved to its own row" }) as HTMLInputElement;
   const inAmount = h("input", { type: "number", step: "0.01", min: "0", value: f.amount, placeholder: "0.00" }) as HTMLInputElement;
   const inDir = h("select", {}, [
     h("option", { value: "debit", selected: f.direction === "debit" ? "selected" : null }, "Money out (debit)"),
@@ -223,7 +229,9 @@ export function openTxnModal(existing?: Transaction): void {
     field("Amount", inAmount),
     field("Direction", inDir),
     field("Category", inCat),
-    field(isCsv ? "Description" : "Note", inDesc),
+    field("Description", inDesc),
+    field("Note", inNote),
+    h("p", { class: "small muted" }, "The note is just for you: it is shown on the row and is searchable, but never affects categorisation or totals."),
   ]);
 
   const onSave = async () => {
@@ -242,6 +250,8 @@ export function openTxnModal(existing?: Transaction): void {
       setOrClear("merchant", inMerchant.value.trim(), raw.merchant);
       setOrClear("description", inDesc.value.trim(), raw.description);
       setOrClear("amount", signed, raw.amount);
+      // A bank row has no imported note, so any text is a change and an empty box clears it.
+      if (inNote.value.trim()) o.note = inNote.value.trim(); else delete o.note;
       if (inCat.value !== existing!.category) o.category = inCat.value; // manual category choice
       if (Object.keys(o).length) state.overrides[existing!.id] = o as Override; else delete state.overrides[existing!.id];
       await store.setOverrides(state.overrides);
@@ -251,6 +261,7 @@ export function openTxnModal(existing?: Transaction): void {
         effectiveDate: inDate.value, postedDate: inDate.value,
         merchant: inMerchant.value.trim(), description: inDesc.value.trim() || inMerchant.value.trim(),
         amount: signed, direction: inDir.value, category: inCat.value, categorySource: "manual",
+        note: inNote.value.trim() || undefined,
       });
       await store.setManual(state.manual);
     } else {
@@ -262,6 +273,7 @@ export function openTxnModal(existing?: Transaction): void {
         amount: signed, direction: inDir.value as Direction, balance: null,
         category: inCat.value, categorySource: "manual",
         ignored: false, recurring: false, source: "manual",
+        note: inNote.value.trim() || undefined,
       });
       await store.setManual(state.manual);
     }

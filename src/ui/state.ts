@@ -42,6 +42,10 @@ export const state: AppState = {
 // Override fields that may edit an imported (bank) transaction. Stored per-id in
 // state.overrides, layered over the pristine raw row in compose() so edits are
 // non-destructive, re-import-safe, and reversible.
+//
+// `note` is deliberately absent: it annotates a row rather than changing an imported value,
+// so it must not raise the "edited" badge, and "Reset to imported values" must not delete it
+// (there is no imported note to reset to, and the note usually explains the edit).
 export const EDIT_FIELDS: (keyof Override)[] = ["effectiveDate", "merchant", "description", "amount"];
 
 export function hasFieldEdits(o?: Override): boolean {
@@ -62,6 +66,7 @@ export function compose(): void {
     if (o.merchant != null) n.merchant = o.merchant;
     if (o.description != null) n.description = o.description;
     if (o.amount != null) { n.amount = o.amount; n.direction = o.amount < 0 ? "debit" : "credit"; }
+    if (o.note != null) n.note = o.note;
     // manual category choice
     if (o.category != null) { n.category = o.category; n.categorySource = "manual"; }
     return n;

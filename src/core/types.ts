@@ -21,6 +21,9 @@ export interface Transaction {
   ignored: boolean;          // excluded from spending totals (internal transfer etc.)
   recurring: boolean;
   source: TxnSource;
+  /** Free-text annotation from the user, e.g. why this row was split or edited. Deliberately
+   *  NOT fed to the rules engine: a note explains a row, it should never re-categorise it. */
+  note?: string;
 }
 
 export interface ParseResult {
@@ -66,6 +69,9 @@ export interface Override {
   merchant?: string;
   description?: string;
   amount?: number;
+  /** User annotation. Kept out of EDIT_FIELDS on purpose: it is not an imported value, so it
+   *  must not raise the "edited" badge, and "Reset to imported values" must not wipe it. */
+  note?: string;
 }
 
 export interface Summary {

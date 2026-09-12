@@ -80,3 +80,39 @@ test("hasFieldEdits detects only field edits (not category/ignore)", () => {
   expect(hasFieldEdits({ merchant: "X" })).toBe(true);
   expect(hasFieldEdits(undefined)).toBe(false);
 });
+
+test("compose applies a note override", () => {
+  reset();
+  state.raw = [txn({ id: "a" })];
+  state.overrides = { a: { note: "split: gift moved to its own row" } };
+  compose();
+  expect(state.effective[0].note).toBe("split: gift moved to its own row");
+});
+
+test("a note alone is not a field edit, so it doesn't mark the row edited", () => {
+  // The "edited" badge means "changed from the imported value". A note annotates the row
+  // without changing one, and Reset to imported values must not delete it.
+  expect(hasFieldEdits({ note: "just a note" })).toBe(false);
+  expect(hasFieldEdits({ note: "n", amount: -5 })).toBe(true);
+});
+
+test("a note never changes categorisation", () => {
+  reset();
+  // The note names a different merchant; rules must ignore it and match the real one.
+  state.raw = [txn({ id: "a", description: "COLES SUPERMARKET", merchant: "COLES" })];
+  state.overrides = { a: { note: "netflix subscriptions dining" } };
+  compose();
+  expect(state.effective[0].category).toBe("groceries");
+});
+
+test("a note survives a re-import of the same transaction", () => {
+  reset();
+  state.raw = [txn({ id: "a", merchant: "COLES" })];
+  state.overrides = { a: { note: "bought a gift too" } };
+  compose();
+  expect(state.effective[0].note).toBe("bought a gift too");
+  // Re-importing replaces state.raw with freshly parsed rows; overrides are keyed by id.
+  state.raw = [txn({ id: "a", merchant: "COLES" })];
+  compose();
+  expect(state.effective[0].note).toBe("bought a gift too");
+});

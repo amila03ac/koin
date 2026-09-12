@@ -12,6 +12,16 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 
 ## [Unreleased]
 
+### Added
+- **Notes on transactions.** Every transaction now has its own **Note** field in the edit
+  dialog, for recording why you changed something. The case it was built for: one bank line
+  covers a grocery shop and a gift, so you reduce that row's amount, add the gift as its own
+  transaction, and note on each what happened. A row with a note shows a small 📝 marker; hover
+  it to read the note. Notes are searchable from the filter box and survive re-importing the
+  same statement. A note never affects
+  categorisation or any total, and **Reset to imported values** keeps it, since the note
+  usually explains the very edit you are undoing.
+
 ### Changed
 - **The period bar now stays put while you scroll.** The Year / Month / Week tabs, the ‹ ›
   stepper and the period label stick just below the header, so you can always see which period

@@ -40,6 +40,14 @@ MVP. Single-account, single-user, runs entirely in the browser.
   over rows you'd hand-categorized.
 - **Custom transactions** — add / edit / remove transactions that aren't in any CSV
   (cash spending, corrections, expected bills).
+- **Notes** — any transaction can carry a free-text `note` explaining why it was changed (the
+  motivating case: one bank line covering a grocery shop *and* a gift, so the row's amount is
+  reduced and the gift is added as its own transaction). A row with a note shows a small 📝
+  marker whose tooltip holds the text (kept out of the row so a long note can't widen the
+  table); notes are searchable. For bank rows a note is stored as a per-id override, so it survives re-imports.
+  It is deliberately **not** in `EDIT_FIELDS`: a note annotates a row rather than changing an
+  imported value, so it must not raise the "edited" badge and *Reset to imported values* must
+  not delete it. The rules engine never sees it, so a note can't re-categorise anything.
 - **Edit imported transactions** — any bank row's fields (date, merchant, amount,
   direction, category, description) can be edited. Edits are stored as **per-id overrides**
   layered over the pristine raw import (see `compose()` + `EDIT_FIELDS`), so they survive
@@ -200,6 +208,7 @@ freshly parsed data, keyed by the stable `id`.
   ignored,        // true = excluded from spending totals (internal transfer etc.)
   recurring,      // true = looks like a subscription / recurring bill
   source,         // 'csv' | 'manual'
+  note,           // optional free-text annotation; never fed to the rules engine
 }
 ```
 
