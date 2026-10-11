@@ -12,35 +12,46 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-11
+
+A release of small improvements to daily use: notes on transactions, a period bar that stays in
+view, tooltips without the wait, and a toolbar that fits a phone.
+
 ### Added
 - **Notes on transactions.** Every transaction now has its own **Note** field in the edit
   dialog, for recording why you changed something. The case it was built for: one bank line
   covers a grocery shop and a gift, so you reduce that row's amount, add the gift as its own
   transaction, and note on each what happened. A row with a note shows a small 📝 marker; hover
   it to read the note. Notes are searchable from the filter box and survive re-importing the
-  same statement. A note never affects
-  categorisation or any total, and **Reset to imported values** keeps it, since the note
-  usually explains the very edit you are undoing.
+  same statement. A note never affects categorisation or any total, and **Reset to imported
+  values** keeps it, since the note usually explains the very edit you are undoing.
 
 ### Changed
 - **The period bar now stays put while you scroll.** The Year / Month / Week tabs, the ‹ ›
   stepper and the period label stick just below the header, so you can always see which period
-  you're looking at — and step to another one — without scrolling back to the top. It doesn't
+  you're looking at, and step to another one, without scrolling back to the top. It doesn't
   shift at all as you start scrolling: it already sits where it pins. On a phone the "jump to
   period" dropdown is hidden to keep that bar to a single row; ‹ › still move between periods.
 - **Tooltips appear instantly.** Hover a donut segment, a trend bar, the small dot marking a
   different posted date, or any icon button, and the explanation shows straight away instead of
-  after the browser's roughly one-second delay — and it's styled to match the app rather than
-  being a grey system box. Keyboard users get the same tooltips on focus, and icon-only buttons
-  now carry proper labels for screen readers.
+  after the browser's roughly one-second delay. It is styled to match the app, where the old
+  one was a grey system box. Keyboard users get the same tooltips on focus, and icon-only
+  buttons now carry proper labels for screen readers.
+- CI and deploys now read the Node version from `.nvmrc`, so a local `nvm use` runs the same
+  Node that builds the site.
 
 ### Fixed
 - **The toolbar no longer overflows on a phone.** At narrow widths the buttons ran off the
-  screen — "Rules" and the ⋯ menu were unreachable — and their labels broke onto three lines.
+  screen, leaving "Rules" and the ⋯ menu unreachable, and their labels broke onto three lines.
   Everything now fits on one row: the wordmark shrinks to its ◎ symbol and the buttons tighten
   up, roughly halving the height the header and period bar take up.
 
-## [0.7.0] — 2026-08-16
+### Security
+- **Development tools updated to clear eight advisories** (five rated high) in Vitest, undici,
+  browserslist and other build and test packages. None of that code reaches the built site:
+  Koin has no runtime dependencies. The risk was to machines that build or test it.
+
+## [0.7.0] - 2026-08-16
 
 The release that took Koin from a local-only app to a published one: it's now **hosted,
 installable, and open source**, with a lot of work to stop your data going missing quietly.
@@ -211,7 +222,7 @@ installable, and open source**, with a lot of work to stop your data going missi
   closing a tab can't overwrite); and a rejected save surfaces a "newer data on disk —
   reload" toast. Intentional bulk ops (restore backup, reset) force-write past the guard.
 
-## [0.6.0] — 2026-05-31
+## [0.6.0] - 2026-05-31
 
 ### Added
 - **Cross-browser persistence via a local helper.** New `server.js` (zero-dependency Node)
@@ -228,7 +239,7 @@ installable, and open source**, with a lot of work to stop your data going missi
   down, flattening the chart. Heights are now computed in pixels and bars no longer shrink,
   so month-to-month differences are shown honestly. (Month/Week views were already fine.)
 
-## [0.5.0] — 2026-05-31
+## [0.5.0] - 2026-05-31
 
 ### Added
 - **Undo** for category changes: the confirmation toast now offers an Undo that removes
@@ -247,7 +258,7 @@ installable, and open source**, with a lot of work to stop your data going missi
 - Documented where data lives (browser `localStorage`) and the `file://` vs `localhost`
   origin caveat in the README.
 
-## [0.4.0] — 2026-05-31
+## [0.4.0] - 2026-05-31
 
 ### Added
 - **Learned categorization rules**: categorizing a previously uncategorized transaction
@@ -260,20 +271,20 @@ installable, and open source**, with a lot of work to stop your data going missi
   learned merchant-rules reliable even when cleaning altered text (e.g. `UBER   *EATS` →
   `UBER EATS`).
 
-## [0.3.0] — 2026-05-31
+## [0.3.0] - 2026-05-31
 
 ### Added
 - Categorizing an uncategorized transaction also fills every other still-uncategorized
   transaction from the **same merchant across all history** (one action, whole backlog).
   Editing an already-categorized transaction still changes only that row.
 
-## [0.2.0] — 2026-05-31
+## [0.2.0] - 2026-05-31
 
 ### Added
 - Support for additional default ignore patterns for internal/own-account transfers, so
   they don't count as spending.
 
-## [0.1.0] — 2026-05-31
+## [0.1.0] - 2026-05-31
 
 Initial working dashboard (local proof-of-concept).
 
@@ -295,5 +306,6 @@ Initial working dashboard (local proof-of-concept).
   (`parser`, `rules`, `insights`) with a headless Node test suite.
 
 <!-- Only tagged versions are linked. 0.1.0–0.6.0 predate tagging in this repo. -->
-[Unreleased]: https://github.com/amila03ac/koin/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/amila03ac/koin/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/amila03ac/koin/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/amila03ac/koin/releases/tag/v0.7.0
