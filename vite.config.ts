@@ -93,6 +93,14 @@ export default defineConfig(({ command, isPreview }) => ({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    // Which browsers the built site must run in. Pinned on purpose: left unset, the floor is
+    // whatever the installed Vite defaults to, so a tooling upgrade can quietly drop older
+    // browsers. Vite 8's default needs Safari 16.4 / Chrome 111, and its CSS minifier then
+    // rewrites `max-width` media queries into a range syntax that Safari 16.3 ignores, which
+    // would lose the phone layout there. These are the browsers Koin supported under Vite 6.
+    // Raising the floor is fine, but make it a decision: change this line and say so in the
+    // changelog.
+    target: ["es2020", "edge88", "firefox78", "chrome87", "safari14"],
   },
   plugins: [
     cspPlugin(),
