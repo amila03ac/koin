@@ -28,7 +28,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          # One source of truth for the Node version, shared with local `nvm use`.
+          node-version-file: .nvmrc
           cache: npm
       # .npmrc sets ignore-scripts=true, so no dependency lifecycle script runs here.
       - run: npm ci

@@ -10,7 +10,8 @@ stack approachable (vanilla JS + TypeScript, bundled with Vite; no heavy framewo
 
 ## Status
 
-MVP. Single-account, single-user, runs entirely in the browser.
+Stage 1: open source and hosted on GitHub Pages since v0.7.0. Still single-account and
+single-user, and it runs entirely in the browser: there is no server and no sign-in.
 
 ## What it does
 
@@ -61,13 +62,12 @@ MVP. Single-account, single-user, runs entirely in the browser.
 
 ## Architecture (and why)
 
-Vite-built app (run with `npm run dev` / `npm run build`); TypeScript is being adopted
-module-by-module (the pure core first — see `docs/ARCHITECTURE.md`). The key design rule is:
+Vite-built app (run with `npm run dev` / `npm run build`), written in TypeScript throughout.
+`docs/ARCHITECTURE.md` records the migration that got it there. The key design rule is:
 
 > **All persistence goes through the storage adapter in `src/store/index.ts`.**
 > Nothing else touches storage. The rest of the app never knows which backend is active. To
-> move to IndexedDB or a cloud backend later, you reimplement that one module — the UI is
-> unchanged.
+> move to a cloud backend later, you reimplement that one module and the UI stays as it is.
 
 Run with `npm run dev` (→ http://localhost:4178); the backend is **IndexedDB**
 (per-browser), auto-selected in `store.init()`, with **localStorage as an automatic fallback**
@@ -131,6 +131,7 @@ Koin/
   index.html            Dashboard shell; loads src/main.ts (Vite entry)
   vite.config.ts        Vite + Vitest config; PWA (manifest + SW), build-time CSP, /koin/ base
   tsconfig.json         TypeScript config
+  .nvmrc                Node version: CI's setup-node reads it, and so does local `nvm use`
   public/               Static assets copied as-is: PWA icons (◎ coin) + favicon.svg
   css/style.css         All styling
   src/
@@ -166,8 +167,13 @@ Koin/
   data/
     Transactions.sample.csv            Synthetic Bank A (standard) sample/test data
     Transactions.sample-detailed.csv   Synthetic Bank B (detailed) sample/test data
-  test/
-    core.test.ts        Vitest unit tests for the pure core
+  test/                 Vitest
+    core.test.ts        Unit tests for the pure core (parser, rules, categories, insights)
+    state.test.ts       compose(): overrides, field edits and notes layered over raw rows
+    store.test.ts       Storage adapter: backup validation, atomic restore, write failures
+    idb.test.ts         The IndexedDB backend end to end (via fake-indexeddb)
+    disk-backup.test.ts The browser-independent parts of the linked disk-backup file
+    ui.test.ts          DOM helpers, modal, toast, tooltip
     boot.test.ts        jsdom boot + integration tests (renders empty + seeded dashboard)
 ```
 
@@ -214,7 +220,7 @@ freshly parsed data, keyed by the stable `id`.
 
 ## CSV quirks this codebase handles (learned from the real data)
 
-- **Two CSV layouts**, auto-detected by sniffing the header row (`Koin.parser` →
+- **Two CSV layouts**, auto-detected by sniffing the header row (`src/core/parser.ts` →
   `FORMATS` / `detectFormat`). Each layout is a small "format profile" mapping our fields
   to that bank's columns + a date parser; the first profile whose `detect(headers)` matches
   wins (list more specific layouts first). Adding a bank = add a profile, not a new parser.
@@ -246,14 +252,14 @@ freshly parsed data, keyed by the stable `id`.
 
 - Vanilla TypeScript bundled with Vite, no UI framework — `src/core`, `src/store`, and
   `src/ui` are all typed. Avoid adding runtime dependencies without a strong reason — keep it
-  lean and offline-capable (PWA later).
+  lean and offline-capable (it ships as a PWA).
 - `src/store/index.ts` is the only module allowed to read/write persistent storage.
 - Pure functions in `src/core/` (parser, rules, insights — no DOM, no storage) so they stay
   easy to test and reuse if this becomes a web/mobile app. Tested with Vitest (`npm test`);
   the jsdom `boot` test guards startup.
 - Money is handled in cents-safe ways where it matters; never trust float equality.
 - `src/core/defaults.ts` holds the first-run seed for categories + rules. The live,
-  user-edited copy lives in storage and is authoritative once saved. Bump `Koin.PALETTE_VERSION` when
+  user-edited copy lives in storage and is authoritative once saved. Bump `PALETTE_VERSION` when
   changing the default category colors; `migratePalette()` in `app.ts` then refreshes
   stored colors for known keys on next load (preserving custom categories/labels/icons).
 - A category's `key` is its **stable id** — transactions, rules, and overrides all
@@ -268,7 +274,7 @@ freshly parsed data, keyed by the stable `id`.
 ## Project docs & workflow
 
 - **[ROADMAP.md](ROADMAP.md)** — where Koin is headed (Now / Next / Later), guiding
-  principles, and the project stages (we're at Stage 0: local POC). The *future*.
+  principles, and the project stages (we're at Stage 1: open source and hosted). The *future*.
 - **[CHANGELOG.md](CHANGELOG.md)** — what has shipped, in [Keep a Changelog](https://keepachangelog.com)
   format with SemVer. The *past*. **Update it with every user-visible change.** When a
   roadmap item ships, move it from ROADMAP to CHANGELOG.
@@ -278,10 +284,13 @@ freshly parsed data, keyed by the stable `id`.
   and self-review against engineering standards scaled to the current stage.
 
 ### Engineering bar scales with stage
-Don't over-engineer a POC, but don't cut corners that cause data loss. See ROADMAP's
-"Project stages" — at **Stage 0** prioritize correct money math, reversible actions, and
-not silently losing user data; defer auth, migrations, perf budgets, and security hardening
-until Stage 1+ (shareable/hosted).
+Koin is at **Stage 1** (public and hosted), so real people's financial data is in play. Three
+rules hold at every stage: correct money math, reversible actions, and never losing user data
+silently. Stage 1 adds: validate anything that takes untrusted input (imported CSVs, restored
+backups, user-written regex rules) and show an honest error when it is bad; no CSP violations
+or production-only breakage; and a security think for anything that touches the network.
+Still deferred to Stage 2: accounts, auth, schema migrations, observability, performance
+budgets. See ROADMAP's "Project stages" and the self-review rubric in the `koin-feature` skill.
 
 ### Repository hygiene — check before every commit or file update
 Koin is a public-facing repo. **Before staging, committing, or updating any tracked file, scan
@@ -314,6 +323,11 @@ from **dependency install scripts**, so:
 - **Always `npm ci`** (strict lockfile), never `npm install` in CI. Commit `package-lock.json`.
 - **Dependabot has a `cooldown`** so freshly published versions aren't adopted immediately —
   compromised releases are usually pulled within days. Don't bypass it by hand-bumping deps.
+- **Clearing `npm audit` advisories by hand** is the one exception, and it keeps the cooldown:
+  update only the named packages, capped at versions at least a week old
+  (`npm update <pkg…> --before=<date 7 days ago>`), then read the lockfile diff before
+  committing. Use the Node in `.nvmrc` for this: npm 10 (bundled with Node 22) crashes on this
+  lockfile with `Cannot read properties of null (reading 'edgesOut')`, and npm 11 does not.
 - **Keep runtime dependencies at zero.** Everything in `package.json` is a devDependency; a
   compromised dev tool can't reach users of the built site (but *can* reach this machine).
 - **Limits worth knowing:** `ignore-scripts` does **not** stop malicious code that executes when

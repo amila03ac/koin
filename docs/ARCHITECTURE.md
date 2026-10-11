@@ -150,11 +150,11 @@ land (see "Tracking progress" above).
       (bug/feature) with a security contact link, and a PR template whose checklist covers the
       money/date/storage invariants. README gained the live link, a CI badge, and a
       contributing section. **Koin is now at Stage 1.**
-  - [ ] **Cut a `0.7.0` release.** `package.json` is already at 0.7.0 but everything since
-        0.6.0 sits under `[Unreleased]` in the changelog and **no git tags exist at all**. Move
-        that block under a `## [0.7.0] — <date>` heading, `git tag v0.7.0 && git push --tags`,
-        and create the GitHub Release. Only *then* re-add the Keep-a-Changelog link definitions
-        at the foot of `CHANGELOG.md` (they were removed because every one 404'd without tags).
+  - [x] **Cut a `0.7.0` release.** Done 2026-08-16: the changelog block moved under a
+        `[0.7.0]` heading, `v0.7.0` was tagged and pushed, and the Keep-a-Changelog link
+        definitions returned to the foot of `CHANGELOG.md` (they resolve now that a tag
+        exists). Releases since then follow the same steps; a GitHub Release page is created
+        by hand from the tag.
 
 **`server.cjs` retired (Step 4).** Its only job was cross-browser local persistence via
 `~/.koin` (with shrink-guard, dirty-beacon, and the PreToolUse hook protecting it). Vite's dev

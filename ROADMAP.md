@@ -10,13 +10,13 @@ product is used. Items are grouped by **horizon** (Now / Next / Later), not hard
 
 - **Personal-finance clarity first.** Every feature should make "where did my money go?"
   easier to answer. Insight > bookkeeping.
-- **Keep it simple to run.** Easy to launch and works offline. (Through 0.x this meant
-  no build step / double-click `index.html`; we've since decided to adopt Vite + a PWA — see
-  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — which keeps offline use while making the
-  codebase maintainable.)
+- **Keep it simple to run.** Open the site or install it as a PWA, and it works offline.
+  (Early versions ran from a double-clicked `index.html` with no build step. Koin now builds
+  with Vite, which kept offline use and made the code maintainable; see
+  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).)
 - **Your data stays yours.** Local-first. Anything that leaves the device is opt-in.
-- **One storage seam.** All persistence stays behind `store.js` so the backend can change
-  without rewriting the app.
+- **One storage seam.** All persistence stays behind `src/store/index.ts`, so the backend can
+  change without rewriting the app.
 - **Small, reversible steps.** Ship thin vertical slices; prefer undoable actions.
 
 ## Project stages
@@ -50,22 +50,23 @@ current stage — see the `koin-feature` skill for the self-review rubric.
   and surface upcoming bills.
 - **Flexible CSV mapping.** A column-mapping step so other banks' export formats import
   without code changes.
-- **Data-safety nudges.** Import history view, "last backup" reminder, and an auto-export
-  prompt — mitigations for the localStorage-can-be-cleared risk.
+- **Import history view.** A list of past imports (file, date, rows added). Koin already
+  records this on every import; nothing shows it yet.
+- **Touch and small-screen polish.** Three known gaps:
+  - Tooltips need hover or keyboard focus, so on a touch screen a note can only be read by
+    opening the edit dialog.
+  - The transaction table is wider than a phone screen and scrolls sideways.
+  - There is no filter for "rows with a note".
 
 ## Architecture evolution
 
-The agreed technical direction (Vite + TypeScript, IndexedDB, PWA, then Supabase cloud
-sync) lives in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — destination **B**
-(local-first + optional cloud sync). Phase 1 of that plan is the **Stage 0 → Stage 1**
-transition. Highlights folded in below.
+The technical direction lives in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**:
+destination **B**, local-first with optional cloud sync. **Phase 1** (Vite + TypeScript,
+IndexedDB, PWA, GitHub Pages deploy) shipped in v0.7.0 and took Koin from Stage 0 to Stage 1.
+**Phase 2** (cloud sync) is listed under Later.
 
 ## Later
 
-- **Phase 1 — real codebase (local-first).** Vite + TypeScript, split `app.js` into modules,
-  IndexedDB backend (localStorage data auto-copied over; old `~/.koin` users re-import),
-  installable PWA, GitHub Pages deploy, CI + MIT license + contributor docs. Retired
-  `server.cjs`/`~/.koin` file backend in Step 4. See docs/ARCHITECTURE.md.
 - **Phase 2 — cloud sync.** Supabase (Postgres + Auth + row-level security) behind the same
   storage seam; IndexedDB becomes the offline cache. Cross-device sync, optional accounts.
 - **Search & reports.** Full-text search, custom date ranges, exportable reports (PDF/CSV).

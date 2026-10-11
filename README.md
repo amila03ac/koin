@@ -20,7 +20,8 @@ in your browser, and you can install it as an offline app.
 
 ## Quick start
 
-**Requirements:** Node.js 20 or newer (Node 24 LTS recommended). Check with `node --version`.
+**Requirements:** Node.js 22 or newer. CI builds with Node 24, pinned in `.nvmrc`, so
+`nvm use` selects the same version. Check yours with `node --version`.
 
 ```bash
 npm ci
@@ -49,7 +50,8 @@ For a production build: `npm run build` (outputs `dist/`), preview it with `npm 
 - **Edit anything.** **＋ Transaction** adds a manual entry (cash, corrections, expected bills).
   Imported bank rows can also be edited — date, merchant, amount, direction, category — and are
   marked *edited*, with **Reset to imported values** to undo. Koin stores your edits separately
-  from the imported data, so re-importing never overwrites your work.
+  from the imported data, so re-importing never overwrites your work. Any transaction can also
+  carry a **note** saying why you changed it: the row shows a 📝, and hovering it shows the text.
 - **Ignore internal transfers.** Money moved between your own accounts isn't spending. Koin
   ignores `Internal Transfer` rows for you; add your own patterns under **Rules** to
   exclude others (for example, a recurring person-to-person payment) — no code needed.

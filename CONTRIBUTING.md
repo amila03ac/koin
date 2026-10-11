@@ -9,7 +9,8 @@ Because Koin handles people's financial records, two things matter more than any
 
 ## Getting set up
 
-You'll need **Node.js 20 or newer** (Node 24 LTS recommended).
+You'll need **Node.js 22 or newer**. CI builds with Node 24, pinned in `.nvmrc`; `nvm use`
+selects it.
 
 ```bash
 npm ci
