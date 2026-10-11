@@ -20,8 +20,9 @@ in your browser, and you can install it as an offline app.
 
 ## Quick start
 
-**Requirements:** Node.js 22 or newer. CI builds with Node 24, pinned in `.nvmrc`, so
-`nvm use` selects the same version. Check yours with `node --version`.
+**Requirements:** Node.js 24.15 or newer. `.nvmrc` pins 24, the version CI builds with, so
+`nvm use` selects it. (On the 22 line, 22.22.2 or newer also works.) Check yours with
+`node --version`.
 
 ```bash
 npm ci

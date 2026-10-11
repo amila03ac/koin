@@ -99,7 +99,7 @@ Vite's `base` (so a sub-path deploy needs no icon changes).
 **Deployed, and running under a strict CSP — beware: `npm run dev` does not enforce it.**
 Pushing to `main` runs CI and, if green, publishes to GitHub Pages
 (https://amila03ac.github.io/koin/) via `.github/workflows/deploy.yml` — so **a push is a
-release to real users**. Two build-time facts follow from that, both configured in
+release to real users**. Three build-time facts follow from that, all configured in
 `vite.config.ts`:
 
 - **`base` is `/koin/`** for the project sub-path. It applies to `build` **and** to
@@ -117,6 +117,12 @@ release to real users**. Two build-time facts follow from that, both configured 
     sample CSVs in `data/` are emitted by a small plugin in `vite.config.ts`. A missing one
     404s silently in production while working perfectly in dev.
   - Inline `style="…"` attributes *are* allowed (`style-src` permits them), so charts are fine.
+- **`build.target` is pinned** (Safari 14, Chrome 87, Firefox 78, Edge 88: what Vite 6 compiled
+  for by default). Left unset, the floor is whatever the installed Vite defaults to, so a
+  tooling upgrade can drop older browsers without anyone deciding to. Vite 8's default (Safari
+  16.4, Chrome 111) made its CSS minifier rewrite `max-width` media queries into a range syntax
+  that older Safari ignores, which would have lost the phone layout there. Raising the floor
+  is a product decision: change the line and say so in the changelog.
 
 Verify anything touching URLs, fetches, runtime assets, the service worker, or markup against
 `npm run build && npm run preview`, not just the dev server.
@@ -317,7 +323,9 @@ which leaves it in history).
 Koin uses **npm** (there is no yarn/pnpm lockfile). Self-replicating npm worms run their payload
 from **dependency install scripts**, so:
 - **`.npmrc` sets `ignore-scripts=true`** — no dependency's preinstall/install/postinstall runs.
-  Verified safe: only `esbuild` ships one, and it works without it. **Don't remove this.** If a
+  Verified safe: no build or test tool needs one (Rolldown, Lightning CSS and the TypeScript 7
+  compiler ship per-platform binaries as optional packages; `fsevents` declares a script but
+  works without it). **Don't remove this.** If a
   new dependency truly needs its script, read the script, then install just that one with
   `npm install <pkg> --foreground-scripts` and note why.
 - **Always `npm ci`** (strict lockfile), never `npm install` in CI. Commit `package-lock.json`.
@@ -328,6 +336,11 @@ from **dependency install scripts**, so:
   (`npm update <pkg…> --before=<date 7 days ago>`), then read the lockfile diff before
   committing. Use the Node in `.nvmrc` for this: npm 10 (bundled with Node 22) crashes on this
   lockfile with `Cannot read properties of null (reading 'edgesOut')`, and npm 11 does not.
+- **Unit tests don't cover the built bundle.** Vitest runs the source through its own
+  transform, so a Vite or minifier upgrade can change what users download while every test
+  stays green. For those upgrades, build before and after and compare: the file list in
+  `dist/`, the syntax level of the JS, the media queries in the CSS, and a click-through of the
+  built app under `npm run preview`.
 - **Keep runtime dependencies at zero.** Everything in `package.json` is a devDependency; a
   compromised dev tool can't reach users of the built site (but *can* reach this machine).
 - **Limits worth knowing:** `ignore-scripts` does **not** stop malicious code that executes when

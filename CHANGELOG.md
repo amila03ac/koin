@@ -12,6 +12,14 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 
 ## [Unreleased]
 
+### Changed
+- **The build and test tools each moved up a major version:** Vite 6 to 8, Vitest 4 to 5,
+  TypeScript 5.9 to 7.0 and jsdom 29 to 30. Nothing changes in the app. The built site was
+  compared with the previous build and behaves the same, and it still targets the same
+  browsers: Vite 8 would have raised that floor to Safari 16.4 and Chrome 111, so the old
+  targets are now set explicitly. For contributors, Node 24.15 or newer is expected (22.22.2
+  or newer on the 22 line also works), because jsdom 30 requires it.
+
 ## [0.8.0] - 2026-10-11
 
 A release of small improvements to daily use: notes on transactions, a period bar that stays in
