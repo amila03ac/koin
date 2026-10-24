@@ -52,10 +52,9 @@ current stage — see the `koin-feature` skill for the self-review rubric.
   without code changes.
 - **Import history view.** A list of past imports (file, date, rows added). Koin already
   records this on every import; nothing shows it yet.
-- **Touch and small-screen polish.** Three known gaps:
-  - Tooltips need hover or keyboard focus, so on a touch screen a note can only be read by
-    opening the edit dialog.
+- **Small-screen polish.** Three known gaps:
   - The transaction table is wider than a phone screen and scrolls sideways.
+  - A toast that has an action button squeezes its text into a one-word-wide column on a phone.
   - There is no filter for "rows with a note".
 
 ## Architecture evolution

@@ -176,6 +176,16 @@ main { max-width: 1140px; margin: 0 auto; padding: 0 20px 20px; display: flex; f
 .koin-tip.show { opacity: 1; visibility: visible; }
 [data-tip] { cursor: help; }
 button[data-tip], select[data-tip], input[data-tip] { cursor: pointer; }
+/* Touch (see src/ui/tooltip.ts). A long press on a button shows its label, so the press must
+   not also start a text selection or open the system callout over the icon. */
+button[data-tip] { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* A 📝 or a • is a small target for a fingertip. On touch screens, widen the area that counts
+   as a tap without moving anything: the invisible ::after belongs to the element, so a tap on
+   it is a tap on the element. */
+@media (pointer: coarse) {
+  .badge[data-tip], .date-eff { position: relative; }
+  .badge[data-tip]::after, .date-eff::after { content: ""; position: absolute; inset: -9px; }
+}
 .merchant { font-weight: 550; }
 .desc-sub { display: flex; gap: 5px; margin-top: 2px; }
 .is-ignored { opacity: 0.5; }

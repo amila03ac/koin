@@ -156,7 +156,7 @@ Koin/
       state.ts          Shared mutable app state + compose() (rules+overrides → effective)
       dom.ts            Tiny DOM helpers: h() element builder, $, money, fmtDate, todayIso, field
       toast.ts          Transient notification (with optional action button)
-      tooltip.ts        Instant styled tooltips for any [data-tip] element (replaces `title`)
+      tooltip.ts        Instant tooltips for any [data-tip] element: hover, keyboard focus, touch
       modal.ts          Overlay modal primitive (openModal)
       backup.ts         Export / restore (atomic, confirmed, safety-snapshot) / reset all data
       disk-backup.ts    Optional auto-backup to a linked HDD file (File System Access API; Chromium)
@@ -274,6 +274,11 @@ freshly parsed data, keyed by the stable `id`.
   slugified from the name (`src/core/categories.ts`), re-derived on rename *only while the
   category is unused*, then frozen. There's no in-app delete (would orphan referencing
   rows) — remove via the Advanced JSON / a restored backup if truly needed.
+- Hover text goes in a `data-tip` attribute, never `title` (`ui/tooltip.ts`). It shows on mouse
+  hover, on keyboard focus, and on touch: a tap shows it on a non-interactive element (a note
+  marker, a chart segment) and keeps it open until dismissed; a button shows its label on a
+  long press, since a tap there is the action. So a button's `data-tip` is a label only: never
+  put information the user needs behind it. Icon-only buttons also need an `aria-label`.
 - Colors live in CSS variables in `css/style.css` (`:root`) — earthy/muted palette. The
   trend-bar color is read from `--primary` at render time so it stays in sync.
 

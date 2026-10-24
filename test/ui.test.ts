@@ -3,7 +3,7 @@
 // Unit tests for the extracted UI utilities (src/ui/dom.ts, src/ui/toast.ts). These are the
 // first pieces split out of app.js in Step 3b; locking their behavior guards the further
 // split.
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { $, fmtDate, h, money, todayIso } from "../src/ui/dom";
 import { toast } from "../src/ui/toast";
 import { openModal } from "../src/ui/modal";
@@ -137,10 +137,24 @@ describe("tooltip()", () => {
   // Delegation is bound once; these tests share it, as the real app does.
   initTooltips();
 
+  // Pointer events carry a pointerType, which is how the module tells a mouse from a finger.
   const hover = (el: Element, related: Element | null = null) =>
-    el.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, relatedTarget: related }));
+    el.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse", relatedTarget: related }));
   const leave = (el: Element, related: Element | null = null) =>
-    el.dispatchEvent(new MouseEvent("mouseout", { bubbles: true, relatedTarget: related }));
+    el.dispatchEvent(new PointerEvent("pointerout", { bubbles: true, pointerType: "mouse", relatedTarget: related }));
+
+  // A finger on a touchscreen. Real browsers follow a tap with a `click`, so `tap` sends one too.
+  const finger = (type: string, el: Element, init: PointerEventInit = {}) =>
+    el.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 7, pointerType: "touch", clientX: 40, clientY: 40, ...init }));
+  const click = (el: Element) => el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+  const tap = (el: Element) => { finger("pointerdown", el); finger("pointerup", el); click(el); };
+
+  // The delegated listeners and their state outlive each test, as they outlive each render in
+  // the app. Escape closes any open tooltip and marks the keyboard as the last input used.
+  afterEach(() => {
+    vi.useRealTimers();
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  });
 
   test("shows the data-tip text on hover and hides on leave", () => {
     const btn = h("button", { "data-tip": "Delete" }, "🗑");
@@ -177,6 +191,170 @@ describe("tooltip()", () => {
     leave(wrap, child); // moving to a child is still "inside"
     expect(currentTipText()).toBe("Posted 15 Aug 2026");
     leave(wrap, document.body);
+    expect(currentTipText()).toBeNull();
+  });
+
+  test("shows on keyboard focus", () => {
+    const btn = h("button", { "data-tip": "Edit" }, "✏️");
+    document.body.appendChild(btn);
+    btn.focus();
+    expect(currentTipText()).toBe("Edit");
+    btn.blur();
+    expect(currentTipText()).toBeNull();
+  });
+
+  // ---- touch: there is no hover, so a tap has to do the job ----
+
+  test("touch: tapping a note marker shows the note, and the click that follows keeps it open", () => {
+    const note = h("span", { class: "badge note", "data-tip": "Split: gift moved to its own row" }, "📝");
+    document.body.appendChild(note);
+    tap(note);
+    expect(currentTipText()).toBe("Split: gift moved to its own row");
+  });
+
+  test("touch: tapping the same element again closes it", () => {
+    const note = h("span", { "data-tip": "A note" }, "📝");
+    document.body.appendChild(note);
+    tap(note);
+    expect(currentTipText()).toBe("A note");
+    tap(note);
+    expect(currentTipText()).toBeNull();
+  });
+
+  test("touch: tapping somewhere else closes it", () => {
+    const note = h("span", { "data-tip": "A note" }, "📝");
+    const elsewhere = h("p", {}, "some other part of the page");
+    document.body.append(note, elsewhere);
+    tap(note);
+    expect(currentTipText()).toBe("A note");
+    tap(elsewhere);
+    expect(currentTipText()).toBeNull();
+  });
+
+  test("touch: tapping a second marker moves the tooltip to it", () => {
+    const a = h("span", { "data-tip": "First" }, "📝");
+    const b = h("span", { "data-tip": "Second" }, "📝");
+    document.body.append(a, b);
+    tap(a);
+    tap(b);
+    expect(currentTipText()).toBe("Second");
+  });
+
+  test("touch: works on SVG (a donut segment)", () => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const seg = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    seg.setAttribute("data-tip", "Groceries: $120 (11%)");
+    svg.appendChild(seg); document.body.appendChild(svg);
+    tap(seg);
+    expect(currentTipText()).toBe("Groceries: $120 (11%)");
+  });
+
+  test("touch: a finger that turns into a scroll is not a tap", () => {
+    const note = h("span", { "data-tip": "A note" }, "📝");
+    document.body.appendChild(note);
+    finger("pointerdown", note);
+    finger("pointercancel", note); // the browser took the gesture over to scroll the page
+    expect(currentTipText()).toBeNull();
+
+    finger("pointerdown", note);
+    finger("pointermove", note, { clientX: 40, clientY: 90 }); // drifted too far to be a tap
+    finger("pointerup", note, { clientX: 40, clientY: 90 });
+    expect(currentTipText()).toBeNull();
+  });
+
+  test("touch: tapping a button presses it and shows no tooltip", () => {
+    let pressed = 0;
+    const btn = h("button", { "data-tip": "Delete", onclick: () => { pressed++; } }, "🗑");
+    document.body.appendChild(btn);
+    finger("pointerdown", btn); finger("pointerup", btn);
+    btn.focus(); // a tap focuses the button; that is not keyboard navigation
+    click(btn);
+    expect(pressed).toBe(1);
+    expect(currentTipText()).toBeNull();
+  });
+
+  test("touch: a long press on a button shows its label and does not press it", () => {
+    vi.useFakeTimers();
+    let pressed = 0;
+    const btn = h("button", { "data-tip": "Delete", onclick: () => { pressed++; } }, "🗑");
+    document.body.appendChild(btn);
+    finger("pointerdown", btn);
+    vi.advanceTimersByTime(400);
+    expect(currentTipText()).toBeNull(); // not long enough yet
+    vi.advanceTimersByTime(200);
+    expect(currentTipText()).toBe("Delete");
+    finger("pointerup", btn);
+    click(btn); // some browsers send a click when the finger lifts; it must not delete anything
+    expect(pressed).toBe(0);
+    expect(currentTipText()).toBe("Delete"); // stays up to be read
+
+    tap(btn); // a normal tap afterwards works as usual
+    expect(pressed).toBe(1);
+    expect(currentTipText()).toBeNull();
+  });
+
+  test("touch: a long press that never gets its click does not swallow a later one", () => {
+    vi.useFakeTimers();
+    let pressed = 0;
+    const btn = h("button", { "data-tip": "Edit", onclick: () => { pressed++; } }, "✏️");
+    document.body.appendChild(btn);
+    finger("pointerdown", btn);
+    vi.advanceTimersByTime(600);
+    finger("pointerup", btn); // this browser sends no click after a long press
+    tap(btn);
+    expect(pressed).toBe(1);
+  });
+
+  test("touch: lifting the finger early cancels the long press", () => {
+    vi.useFakeTimers();
+    const btn = h("button", { "data-tip": "Edit" }, "✏️");
+    document.body.appendChild(btn);
+    finger("pointerdown", btn);
+    vi.advanceTimersByTime(200);
+    finger("pointerup", btn);
+    vi.advanceTimersByTime(1000);
+    expect(currentTipText()).toBeNull();
+  });
+
+  test("touch: Android's own long press (a contextmenu event) shows the label, with no menu", () => {
+    let pressed = 0;
+    const btn = h("button", { "data-tip": "Delete", onclick: () => { pressed++; } }, "🗑");
+    document.body.appendChild(btn);
+    finger("pointerdown", btn);
+    const menu = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    btn.dispatchEvent(menu);
+    finger("pointercancel", btn); // Android cancels the pointer once it has recognised the long press
+    expect(menu.defaultPrevented).toBe(true);
+    expect(currentTipText()).toBe("Delete");
+    expect(pressed).toBe(0);
+  });
+
+  test("a mouse right-click keeps its normal menu", () => {
+    const btn = h("button", { "data-tip": "Delete" }, "🗑");
+    document.body.appendChild(btn);
+    btn.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "mouse", button: 2 }));
+    const menu = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    btn.dispatchEvent(menu);
+    expect(menu.defaultPrevented).toBe(false);
+  });
+
+  test("touch: scrolling the page closes an open tooltip", () => {
+    const note = h("span", { "data-tip": "A note" }, "📝");
+    document.body.appendChild(note);
+    tap(note);
+    expect(currentTipText()).toBe("A note");
+    window.dispatchEvent(new Event("scroll"));
+    expect(currentTipText()).toBeNull();
+  });
+
+  test("a mouse still hovers normally after the screen has been touched", () => {
+    const note = h("span", { "data-tip": "A note" }, "📝");
+    const btn = h("button", { "data-tip": "Edit" }, "✏️");
+    document.body.append(note, btn);
+    tap(note);
+    hover(btn);
+    expect(currentTipText()).toBe("Edit");
+    leave(btn);
     expect(currentTipText()).toBeNull();
   });
 });

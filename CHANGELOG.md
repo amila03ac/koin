@@ -12,6 +12,14 @@ This changelog is the *past* (what shipped); [ROADMAP.md](ROADMAP.md) is the *fu
 
 ## [Unreleased]
 
+### Added
+- **Tooltips work on touch screens.** There is no hover on a phone or tablet, so until now a
+  note could only be read there by opening the edit dialog. Tap a 📝, a chart segment, a trend
+  bar or the small posted-date dot to see its text; it stays until you tap it again, tap
+  elsewhere, or scroll. On a button a tap still does the button's job, so its label shows on a
+  long press instead, and that press does not trigger the button. Small markers also get a
+  larger tap area on touch screens. Mouse and keyboard behaviour is unchanged.
+
 ### Changed
 - **The build and test tools each moved up a major version:** Vite 6 to 8, Vitest 4 to 5,
   TypeScript 5.9 to 7.0 and jsdom 29 to 30. Nothing changes in the app. The built site was
